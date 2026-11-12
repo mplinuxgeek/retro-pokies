@@ -101,9 +101,6 @@
   .playov { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .35); opacity: 0; transition: opacity .15s; }
   .playov span { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(180deg, #ffd862, #e8a93a); color: #2a1803; font-size: 24px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); padding-left: 4px; }
   .thumb:hover .playov, .thumb:focus-visible .playov { opacity: 1; }
-  .status { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(10, 6, 2, .78); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, .08); }
-  .status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
-  .status.ready { color: var(--ready); } .status.maybe { color: var(--maybe); } .status.broken { color: var(--broken); } .status.unknown { color: var(--unknown); }
   .fav { position: absolute; right: 8px; top: 6px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(10, 6, 2, .6); color: #cdb98d; font-size: 18px; cursor: pointer; line-height: 1; }
   .fav:hover { color: var(--gold); background: rgba(10, 6, 2, .85); }
   .fav[aria-pressed="true"] { color: var(--gold); background: rgba(42, 26, 6, .9); box-shadow: 0 0 0 1px var(--gold2), 0 0 10px rgba(255, 200, 80, .35); }
@@ -164,8 +161,6 @@
     .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
     .card { border-radius: 10px; }
     .ph { font-size: 15px; padding: 6px 30px 26px; }
-    .status { left: 5px; bottom: 5px; padding: 2px 7px; font-size: 10.5px; gap: 4px; }
-    .status i { width: 6px; height: 6px; }
     .fav { width: 28px; height: 28px; font-size: 15px; right: 5px; top: 5px; }
     .body { padding: 7px 9px 9px; gap: 2px; }
     .body h2 { font-size: 13.5px; }
@@ -174,7 +169,7 @@
   }
   @media (max-width: 480px) { #addbtn .more { display: none; } }
   @media (max-width: 400px) { #addbtn { width: 38px; padding: 0; justify-content: center; font-size: 18px; } #addbtn .lbl { display: none; } }
-  @media (max-width: 340px) { .brand img { display: none; } .sort select { max-width: 112px; } .status { font-size: 9.5px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
+  @media (max-width: 340px) { .brand img { display: none; } .sort select { max-width: 112px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
   /* tablets: search and sort share the first toolbar row, the filter chips take the next */
   @media (min-width: 641px) and (max-width: 1100px) {
     .search { order: 1; max-width: none; }
@@ -325,7 +320,7 @@
   };
   lcdTotals(); addEventListener('storage', lcdTotals); addEventListener('pageshow', lcdTotals);
 
-  // ---- status: rom-status.json (the latest scan) in four groups; a card shows the scan's own label
+  // ---- status: rom-status.json (the latest scan) in four groups (the "Best working first" sort); cards carry no status pill
   const GROUPS = {
     ready: 'Pays normally',
     maybe: 'Pays high or low',
@@ -543,11 +538,6 @@
     const ov = document.createElement('div');
     ov.className = 'playov'; ov.innerHTML = '<span aria-hidden="true">▶</span>';
     thumb.appendChild(ov);
-    const st = document.createElement('span');
-    st.className = 'status ' + g.group; st.innerHTML = '<i></i>';
-    st.title = g.rs ? 'Latest scan: RTP ' + g.rs.rtp + ' over ' + g.rs.spins + ' spins' : 'Not scanned yet';
-    st.append(g.label);
-    if (!/^Pays /.test(g.label)) thumb.appendChild(st);   // no pill for a game that pays (a "Pays ..." label)
     el.appendChild(thumb);
 
     const fav = document.createElement('button');
