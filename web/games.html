@@ -415,17 +415,19 @@
     });
   } catch (e) {}
   const shotOf = id => serverShot(id) || LOCAL_SHOTS[id] || null;
-  // the marquee (attract art) that tools/shots.js caches beside the screenshot
+  // the marquee (attract art) that tools/shots.js caches beside the screenshot; without a server store, the one this browser made
+  // from its own copy of the ROM (fillArt below), kept in the same IndexedDB store under 'mq:<id>' ('' = the ROM has no attract art)
   const marqueeOf = id => {
     const rec = server && server.games[id];
     const f = rec && rec.files.filter(x => x.name === 'marquee.jpg' || x.name === 'marquee.png').sort((a, b) => b.mtime - a.mtime)[0];
-    return f ? '/api/games/' + encodeURIComponent(id) + '/files/' + f.name + '?v=' + f.mtime : null;
+    return f ? '/api/games/' + encodeURIComponent(id) + '/files/' + f.name + '?v=' + f.mtime : LOCAL_SHOTS['mq:' + id] || null;
   };
-  // the banner's art: the last played game's marquee, when the server has one
-  {
+  // the banner's art: the last played game's marquee, when there is one
+  const bannerArt = () => {
     const last = games.map(g => [+(ls.get('mk6-played-' + g.id) || 0), g.id]).sort((a, b) => b[0] - a[0]).find(x => x[0] && marqueeOf(x[1]));
     if (last) document.querySelector('#marquee .art').style.backgroundImage = 'url("' + marqueeOf(last[1]) + '")';
-  }
+  };
+  bannerArt();
 
   // ---- per-browser bits: favourites, last played, developer view
   const favs = new Set(JSON.parse(ls.get('mk6-favs') || '[]'));
@@ -693,6 +695,42 @@
     render();
   }
 
+  // ---- card art without a server: each ROM saved in this browser that has no marquee yet is opened in marquee-worker.js (no spin, a second
+  // or two a game) and its attract art is kept in this browser. A server with a writable store makes marquees itself (tools/shots.js).
+  let arting = false; const artTried = new Set();
+  const artOne = (id, buf) => new Promise(res => {
+    const w = new Worker('js/marquee-worker.js'), t = setTimeout(() => { w.terminate(); res(null); }, 60000);
+    w.onmessage = e => {
+      clearTimeout(t); w.terminate();
+      const im = e.data.im;
+      if (!im) return res(e.data.none ? '' : null);
+      const c = document.createElement('canvas'); c.width = im.w; c.height = im.h;
+      c.getContext('2d').putImageData(new ImageData(im.rgba, im.w, im.h), 0, 0);
+      res(c.toDataURL('image/jpeg', 0.85));
+    };
+    w.onerror = () => { clearTimeout(t); w.terminate(); res(null); };
+    w.postMessage({ id, buf }, [buf]);
+  });
+  async function fillArt() {
+    if (arting || serverScans()) return;
+    const queue = [...lib].filter(id => !marqueeOf(id) && LOCAL_SHOTS['mq:' + id] === undefined && !artTried.has(id));
+    if (!queue.length) return;
+    arting = true;
+    let done = 0;
+    const lane = async () => {
+      while (queue.length) {
+        const id = queue.shift(), rec = await RomStore.get(id).catch(() => null); artTried.add(id);
+        const url = rec ? await artOne(id, rec.buf.slice(0)) : null;
+        if (url !== null) { LOCAL_SHOTS['mq:' + id] = url; sput('mq:' + id, url); }   // an error is not kept: the next page load tries again
+        if (url && ++done % 4 === 0) render();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(2, queue.length) }, lane));
+    arting = false;
+    if (done) { render(); bannerArt(); }
+    fillArt();   // ROMs added meanwhile
+  }
+
   // Screenshots are taken by the server (tools/shots.js on the host, many ROMs in parallel) whenever it has a writable store;
   // the browser scan above is the fallback for a page served without the API
   const serverScans = () => !!(server && server.writable);
@@ -744,7 +782,7 @@
       catch (e) { out.push(f.name + ' failed: ' + e.message); }
     }
     addmsg(out.length ? out.join(' · ') : 'No .zip files in that selection.');
-    render();
+    render(); fillArt();
   }
   async function scanRoms(files) {
     const known = new Set(games.map(g => g.id));
@@ -759,7 +797,7 @@
       try { await RomStore.put(id, f.name, await f.arrayBuffer()); lib.add(id); added++; } catch (e) {}
     }
     addmsg('Found ' + seen + ' known game' + (seen === 1 ? '' : 's') + ', ' + added + ' new.');
-    render();
+    render(); fillArt();
   }
   const hdb = () => new Promise((res, rej) => { const r = indexedDB.open('mk6-handles', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
   const hget = async () => {
@@ -829,6 +867,7 @@
   await followScan();
 
   render();
+  fillArt();
   // pick up a server screenshot scan that is already running (started from another browser or before a reload)
   if (serverScans()) followServerShots();
 })();
