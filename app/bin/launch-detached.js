@@ -1,4 +1,4 @@
-// Starts the desktop player apart from the console it was launched from, so the launcher's window can close (Retro Pokies Desktop.cmd).
+// Starts the desktop player apart from the console it was launched from, so the launcher's window can close (Retro Pokies Desktop - Windows.cmd).
 // The player's output goes to retro-pokies.log in the temp folder. If the player stops with an error within 3 seconds (Node too old,
 // the window library missing), the log is printed and this exits 1, so the launcher can keep its window open; otherwise it exits 0.
 // usage: node launch-detached.js <main.js> [ROM folder | ROM zip]

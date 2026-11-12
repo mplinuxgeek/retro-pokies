@@ -13,7 +13,7 @@ It comes in two forms, both running the same engine (`web/js/`), so a game plays
 |---|---|---|---|
 | What | `server.py` + `web/` in a container | `web/` only, built into `dist/pages/` | `app/`: the engine in Node.js, an SDL window |
 | Start | `docker compose up -d`, then open the page | open the site | double-click the launcher for your system |
-| ROMs | a folder on the host, mounted read-only | added in the browser, kept in IndexedDB, never uploaded | the `roms/` folder, or a folder you give it |
+| ROMs | a folder on the host, mounted read-only | added in the browser, kept in IndexedDB, never uploaded | the `roms/` folder, `roms` or `mk6roms` in your home folder, or a folder you give it |
 | Extras | game library, server-side screenshots, shared notes | works offline as a PWA | keyboard play, money balance kept between runs |
 | Not yet | | | sound, gamble and feature choices, two-screen touch games |
 
@@ -48,11 +48,11 @@ Writes `dist/pages/` (about 1.5 MB, git-ignored): the player, game maps, a manif
 
 The same engine as the web player in a native window (Node.js and SDL): no browser, no server. It draws the web build's look (games list, banner with the CREDIT / BET / WIN LCD, control panel) and keeps your money balance, favourites and settings between runs.
 
-Needs [Node.js](https://nodejs.org/) 22 or newer. Put your ROM zips in `roms/`, then:
+Needs [Node.js](https://nodejs.org/) 22 or newer. Put your ROM zips in `roms/` here, or in a folder named `roms` or `mk6roms` in your home folder, then:
 
-* **Windows**: double-click `Retro Pokies Desktop.cmd` (or drop a ROM folder or zip on it).
-* **Mac**: double-click `Retro Pokies Desktop.command` (it opens in Terminal). The first time, macOS may block a downloaded script: right-click it, choose **Open**, then **Open** again.
-* **Linux**: `./retro-pokies-desktop.sh [ROM folder | ROM zip]`
+* **Windows**: double-click `Retro Pokies Desktop - Windows.cmd` (or drop a ROM folder or zip on it).
+* **Mac**: double-click `Retro Pokies Desktop - Mac.command` (it opens in Terminal). The first time, macOS may block a downloaded script: right-click it, choose **Open**, then **Open** again.
+* **Linux**: `"./Retro Pokies Desktop - Linux.sh" [ROM folder | ROM zip]`
 
 The first run installs the window library (SDL, about 7 MB) into `app/node_modules/`. Settings, favourites and the balance are kept in `retro-pokies-desktop/settings.json` in your config folder (`~/.config` on Linux). It is a preview: reel games only, wins are collected at once (no gamble or feature choices yet) and there is no sound. More detail: [app/README.md](app/README.md).
 

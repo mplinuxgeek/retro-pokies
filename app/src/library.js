@@ -6,9 +6,10 @@ const { RP, MK6, mapFor, slug } = require('./core.js'), JPEG = require(path.join
 
 const CACHE = path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache'), 'retro-pokies-desktop');
 
-// ROM folders, first ones first, duplicates dropped: the folder given, ROMS, ./Roms, ./roms, the web build's roms/
+// ROM folders, first ones first, duplicates dropped: the folder given, ROMS, ./Roms, ./roms, the web build's roms/,
+// then roms and mk6roms in the user's home folder
 function romDirs(given) {
-  const c = [given, process.env.ROMS, 'Roms', 'roms', path.join(RP, 'roms')].filter(Boolean).map(d => path.resolve(d));
+  const c = [given, process.env.ROMS, 'Roms', 'roms', path.join(RP, 'roms'), path.join(os.homedir(), 'roms'), path.join(os.homedir(), 'mk6roms')].filter(Boolean).map(d => path.resolve(d));
   return [...new Set(c)].filter(d => { try { return fs.statSync(d).isDirectory(); } catch (e) { return false; } });
 }
 

@@ -240,7 +240,7 @@ class Selector {
   empty(s) {
     if (!this.list.length) {
       const msg = !this.games.length ? 'No games yet' : this.group === 'fav' && !this.filter ? 'No favourites yet' : 'No game matches';
-      const sub = !this.games.length ? 'Put your ROM zips in the roms folder, or drop a folder on the launcher' : this.group === 'fav' ? 'Ctrl+D or the star on a card marks one' : 'Esc clears the search';
+      const sub = !this.games.length ? 'Put ROM zips in the roms folder here, or in roms or mk6roms in your home folder' : this.group === 'fav' ? 'Ctrl+D or the star on a card marks one' : 'Esc clears the search';
       s.print('big', msg, this.W / 2, TOP + 120, { color: C.text, align: 'center' }); s.print('ui', sub, this.W / 2, TOP + 170, { color: C.muted, align: 'center' });
     }
   }

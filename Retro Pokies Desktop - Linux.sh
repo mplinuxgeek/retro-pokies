@@ -2,7 +2,7 @@
 # Starts Retro Pokies as a desktop app (an SDL window, no browser or server needed).
 # The first run installs the window library (SDL, about 7 MB) into app/node_modules; it needs Node.js 22 or newer and npm.
 # Games come from the roms folder next to this file, or from the folder or ROM zip given on the command line.
-# usage: ./retro-pokies-desktop.sh [ROM folder | ROM zip]
+# usage: "./Retro Pokies Desktop - Linux.sh" [ROM folder | ROM zip]
 here=$(cd "$(dirname "$0")" && pwd); app="$here/app"
 node="$app/node/bin/node"; [ -x "$node" ] || node=$(command -v node)
 if [ -z "$node" ]; then echo "Retro Pokies needs Node.js 22 or newer: https://nodejs.org/ (or your package manager's nodejs)." >&2; exit 1; fi

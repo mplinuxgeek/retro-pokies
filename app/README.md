@@ -2,7 +2,7 @@
 
 A desktop player for Windows, Mac and Linux: the Retro Pokies engine running in Node, drawn in an SDL window. The engine is not copied: `src/core.js` loads it from this repository's `web/js/`, so the desktop and web players run the same code. No ROMs are included.
 
-To play, use the launcher in the repository root (`Retro Pokies Desktop.cmd` on Windows, `Retro Pokies Desktop.command` on a Mac, `retro-pokies-desktop.sh` on Linux): it checks for Node.js 22, installs SDL on the first run and starts the app. Games come from the repository's `roms/` folder, or the folder or zip you give it. For development:
+To play, use the launcher in the repository root (`Retro Pokies Desktop - Windows.cmd` on Windows, `Retro Pokies Desktop - Mac.command` on a Mac, `Retro Pokies Desktop - Linux.sh` on Linux): it checks for Node.js 22, installs SDL on the first run and starts the app. Games come from the repository's `roms/` folder, or the folder or zip you give it. For development:
 
 ```
 npm install                                # SDL2 binding (@kmamal/sdl, a prebuilt native module)
