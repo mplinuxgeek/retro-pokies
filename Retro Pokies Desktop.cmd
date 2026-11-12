@@ -21,5 +21,6 @@ if not exist "%app%\node_modules\@kmamal\sdl" (
     exit /b 1
   )
 )
-"%node%" "%app%\src\main.js" %*
+rem The game runs on its own, without this window: this window closes once it has started (if it fails to start, the reason is shown here).
+"%node%" "%app%\bin\launch-detached.js" "%app%\src\main.js" %*
 if errorlevel 1 pause

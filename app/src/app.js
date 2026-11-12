@@ -108,9 +108,9 @@ class App {
     this.loading = null; this.loadStep = null; this.art.pause(!this.selecting);   // card art made again only while the games list shows
   }
   newPanel(game) { const p = this.cab.panel || { x: this.cab.game.x, y: 0 }; return new PN.Panel(game, p.x, p.y, this.noteText(), p.side); }
-  // the panel either side of the game (S.layout 'sides'), under it ('below'), or ('auto', the default) whichever shows the game larger on this screen
+  // the panel either side of the game (S.layout 'sides'), under it ('below', the default: a tall window), or ('auto') whichever shows the game larger on this screen
   sideFits(o = {}) {
-    const L = this.S.layout || 'auto'; if (L !== 'auto') return L === 'sides';
+    const L = this.S.layout || 'below'; if (L !== 'auto') return L === 'sides';
     const d = this.pf.display && this.pf.display(); if (!d) return false;
     const k = side => { const c = new Cabinet({ ...this.cab.o, ...o, side }); return Math.min(d[0] / c.W, d[1] / c.H); }; return k(true) > k(false);
   }
@@ -248,7 +248,7 @@ class App {
     if (this.cab.o.banner) it.push({ label: 'Banner shows: ' + BST.find(b => b[0] === bst)[1] + '...', list: () => BST.map(([v, t]) => ({ label: (bst === v ? '* ' : '  ') + t, act: () => this.setCab({ style: v }) })) });
     it.push({ label: 'LCD panel: ' + on(this.cab.o.lcd), act: () => { this.setCab({ lcd: !this.cab.o.lcd }); return 'stay'; } });
     it.push({ label: 'Control panel: ' + on(this.cab.o.panel), act: () => { this.setCab({ panel: !this.cab.o.panel }); return 'stay'; } });
-    const LAY = [['auto', 'Auto (fits the screen)'], ['below', 'Below the game'], ['sides', 'Either side of the game']], lay = S.layout || 'auto';
+    const LAY = [['below', 'Below the game'], ['sides', 'Either side of the game'], ['auto', 'Auto (fits the screen)']], lay = S.layout || 'below';
     it.push({ label: 'Panel position: ' + LAY.find(l => l[0] === lay)[1] + '...', list: () => LAY.map(([v, t]) => ({ label: (lay === v ? '* ' : '  ') + t, act: () => { S.layout = v; this.st.save(); this.setCab({}); } })) });
     if (this.cab.o.lcd) it.push({ label: 'LCD colour: ' + this.cab.o.theme + '...', list: () => THEMES.map(t => ({ label: (this.cab.o.theme === t ? '* ' : '  ') + t[0].toUpperCase() + t.slice(1), act: () => this.setCab({ theme: t }) })) });
     it.push({ label: 'Reset banner & LCD', act: () => { this.setCab({ banner: true, style: 'art', lcd: true, theme: 'green' }); return 'stay'; } });   // play.html's defaults

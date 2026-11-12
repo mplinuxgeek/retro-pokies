@@ -10,7 +10,7 @@ export XDG_CONFIG_HOME="$D/save" XDG_CACHE_HOME="$D/save/cache"
 [ -z "$XDG_RUNTIME_DIR" ] && [ -S /var/run/pipewire-0 ] && export XDG_RUNTIME_DIR=/var/run   # Batocera audio is PipeWire; a plain SSH shell lacks this
 # first run: full screen, no banner (the game shows its own meters, and the menu button sits in the game's corner); F3 or the menu brings it back
 if [ ! -f "$D/save/retro-pokies-desktop/settings.json" ]; then
-  mkdir -p "$D/save/retro-pokies-desktop" && echo '{ "banner": false, "fullscreen": true }' > "$D/save/retro-pokies-desktop/settings.json"
+  mkdir -p "$D/save/retro-pokies-desktop" && echo '{ "banner": false, "fullscreen": true, "layout": "auto" }' > "$D/save/retro-pokies-desktop/settings.json"
 fi
 # glibc keeps freed picture memory (each game's images are some 150 MB) unless large blocks are always mapped and the heap trimmed:
 # without these the app grew past 450 MB after a few games, which locked up a 1 GB handheld
