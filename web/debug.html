@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retro Pokies Debug</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root { color-scheme:dark; --bg:#0c0703; --panel:#1a0f06; --edge:#6b4318; --gold:#ffe27a; --ok:#3ecf5a; --warn:#f0b23a; --bad:#e06060; }
+  html,body { margin:0; background:var(--bg); color:#f2e3bd; font:14px/1.35 system-ui,sans-serif; }
+  #app { max-width:1600px; margin:0 auto; padding:18px 16px 40px; }
+  h1 { margin:0 0 10px; font-size:22px; color:var(--gold); }
+  #cfg { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:10px; }
+  label { display:flex; flex-direction:column; font-size:12px; color:#bda877; gap:2px; }
+  input[type=number] { width:80px; font:inherit; color:#f2e3bd; background:#241508; border:1px solid var(--edge); border-radius:6px; padding:5px 8px; }
+  select { font:inherit; color:#f2e3bd; background:#241508; border:1px solid var(--edge); border-radius:6px; padding:5px 8px; }
+  input[type=search] { width:160px; font:inherit; color:#f2e3bd; background:#241508; border:1px solid var(--edge); border-radius:6px; padding:5px 8px; }
+  button { font:inherit; color:#f2e3bd; background:#3a2410; border:1px solid var(--edge); border-radius:6px; padding:6px 14px; cursor:pointer; }
+  button:disabled { opacity:.45; cursor:default; } #go { background:#1f7a2e; border-color:#58c46a; color:#fff; font-weight:700; } #stop { background:#7a1f1f; border-color:#c45858; color:#fff; font-weight:700; }
+  button:focus-visible, input:focus-visible { outline:3px solid #7fc8ff; outline-offset:2px; }
+  #sum { margin:0 0 10px; color:#d9c89c; font-size:13px; } #prog { width:100%; height:22px; appearance:none; -webkit-appearance:none; border:1px solid var(--edge); border-radius:11px; background:#241508; overflow:hidden; accent-color:#6bc46a; }
+  #prog::-webkit-progress-bar { background:#241508; } #prog::-webkit-progress-value { background:linear-gradient(#58d86e,#2f9e45); border-radius:11px 0 0 11px; transition:width .2s; } #prog::-moz-progress-bar { background:#3fb858; }
+  table { width:100%; border-collapse:collapse; font-size:13px; } th, td { text-align:right; padding:4px 8px; border-bottom:1px solid #2c1b0b; white-space:nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align:left; } th { color:var(--gold); position:sticky; top:0; background:var(--bg); cursor:pointer; }
+  td.err { text-align:left; white-space:normal; color:#d9a0a0; font-size:12px; max-width:320px; overflow:hidden; text-overflow:ellipsis; }
+  .queued { color:#8b7a5a; } .running { color:#7fc8ff; } .possibly { color:var(--ok); } .broken { color:var(--warn); } .club, .error, .timed { color:var(--bad); } .suspect { color:#e08be0; } .low { color:#d8d060; } .up { color:var(--ok); } .down { color:var(--bad); } .stopped { color:#8b7a5a; }
+  .r-working { color:var(--ok); font-weight:600; } .r-possible { color:#e8d03a; font-weight:600; } .r-low { color:#f08a2a; font-weight:600; } .r-broken { color:var(--bad); font-weight:600; } .r-suspect { color:#e08be0; font-weight:600; }
+  #stats, #quick { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 8px; }
+  .chip { font-size:12px; padding:3px 10px; border-radius:14px; background:#241508; border:1px solid var(--edge); color:#f2e3bd; }
+  .chip.on { background:#6b4318; border-color:var(--gold); color:#fff; } .chip b { font-weight:700; margin-left:4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>Debug: ROM scan</h1>
+  <div id="cfg">
+    <label>Max tasks<input id="jobs" type="number" min="1" max="64" value="2"></label>
+    <label>Spins<input id="spins" type="number" min="1" value="2500"></label>
+    <label>Dry-spin bail<input id="dry" type="number" min="1" value="100"></label>
+    <label>Minutes limit<input id="mins" type="number" min="0.1" step="0.5" value="5"></label>
+    <label>Stuck frames<input id="frames" type="number" min="1000" value="40000"></label>
+    <label>Filter<input id="filter" type="search" placeholder="name contains"></label>
+    <label>Status<select id="stfilter"><option value="">all</option></select></label>
+    <label style="flex-direction:row;align-items:center;gap:6px"><input id="rerun" type="checkbox"> re-run finished</label>
+    <button id="go">Start</button><button id="stop" disabled>Stop</button><button id="refail">Re-run failed</button><button id="exp">Export JSON</button><button id="clrmaps" title="Remove browser-discovered maps (localStorage mk6-map-*) so scans use the shipped maps or rediscover">Clear old maps</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px"><progress id="prog" value="0" max="1" style="flex:1"></progress><span id="pct" style="font-size:16px;font-weight:700;color:var(--gold);min-width:7.5em;text-align:right">0%</span></div>
+  <p id="sum"></p>
+  <div id="stats" aria-label="Status counts"></div>
+  <div id="quick" aria-label="Quick filters"></div>
+  <table><thead><tr><th data-k="name">ROM</th><th data-k="status">Status</th><th data-k="spins">Spins</th><th data-k="wins">Wins</th><th data-k="rtp">RTP</th><th data-k="hit">Hit</th><th data-k="avgWin" title="Mean win per winning spin, in bets (RTP / hit rate)">Avg win x</th><th data-k="features">Feats</th><th data-k="featRtp">Feat RTP</th><th data-k="maxMult">Max x</th><th data-k="spinsPerSec">Spins/s</th><th data-k="secs">Secs</th><th data-k="discoverSecs">Disc s</th><th data-k="framesPerSpin">Frames/spin</th><th data-k="denom">Denom</th><th data-k="dRtp">ΔRTP</th><th>Note</th></tr></thead><tbody id="rows"></tbody></table>
+</div>
+<script src="js/romstore.js"></script>
+<script src="js/rtp-bands.js"></script>
+<script>
+document.addEventListener('click', e => { const c = e.target.closest('td.cp'); if (c) navigator.clipboard.writeText(c.dataset.zip).catch(() => {}); const n = e.target.closest('td.err'); if (n && n.textContent) navigator.clipboard.writeText(n.textContent).catch(() => {}); });
+const $ = id => document.getElementById(id), slug = n => n.toLowerCase().replace(/\.zip$/i, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const L = RTP_BANDS.L, CLS = { [L.normal]: 'possibly', [L.abitlow]: 'low', [L.low]: 'low', [L.verylow]: 'broken', [L.high]: 'suspect', [L.always]: 'suspect',
+  [L.never]: 'club', [L.rarely]: 'club', [L.error]: 'error', [L.timeout]: 'timed' };   // older labels go through RTP_BANDS.current first
+const rows = new Map(), workers = new Map(); let running = false, sortKey = 'name', sortDir = 1, dirty = false;
+const cfg = () => ({ spins: +$('spins').value || 2500, dry: +$('dry').value || 100, mins: +$('mins').value || 5, frames: +$('frames').value || 40000 });
+
+async function loadList() {
+  const server = await RomStore.serverList().catch(() => []), ids = await RomStore.list().catch(() => []), names = {};
+  for (const r of server) names[slug(r.name)] = r.name.replace(/\.zip$/i, '');
+  // previous results (the shipped db) seed the table so finished ROMs show their last status
+  let prev = {}; try { for (const r of await (await fetch('rom-status.json', { cache: 'no-cache' })).json()) prev[r.id || slug(r.name)] = r; } catch (e) {}
+  for (const id of ids) { try { const l = JSON.parse(localStorage.getItem('mk6-scan-' + id)); if (l && l.status) prev[id] = l; } catch (e) {} }   // results of earlier browser runs beat the shipped db
+  for (const r of Object.values(prev)) r.status = RTP_BANDS.current(r.status);   // labels from older runs read as today's
+  for (const id of ids) if (!rows.has(id)) rows.set(id, { id, name: names[id] || id, state: prev[id] ? 'done' : 'queued', r: prev[id] || null, prev: prev[id] || null, prog: null, old: !!prev[id] });
+  render();
+}
+
+let qf = '';   // quick filter id
+const QUICK = [
+  ['', 'All', () => true],
+  ['attn', 'Needs attention', x => x.r && ![L.normal, L.abitlow].includes(x.r.status)],
+  ['failed', 'Stalled / hung', x => x.r && [L.error, L.timeout].includes(x.r.status)],
+  ['nopay', 'No / few wins', x => x.r && [L.never, L.rarely, L.verylow].includes(x.r.status)],
+  ['good', 'RTP 0.8+', x => x.r && x.r.rtp >= RTP_BANDS.working && x.r.rtp <= RTP_BANDS.suspect],
+  ['mid', 'RTP 0.5 to 0.8', x => x.r && x.r.rtp >= RTP_BANDS.possible && x.r.rtp < RTP_BANDS.working],
+  ['weak', 'RTP under 0.5', x => x.r && x.r.rtp != null && x.r.rtp < RTP_BANDS.possible],
+  ['feat', 'Has features', x => x.r && x.r.features > 0],
+  ['nofeat', 'No features seen', x => x.r && /no features seen/i.test(x.r.note || '')],
+  ['chg', 'Changed vs previous', x => x.r && x.prev && x.r !== x.prev && x.r.rtp != null && x.prev.rtp != null && Math.abs(x.r.rtp - x.prev.rtp) >= 0.1],
+  ['todo', 'Not run', x => !x.r],
+];
+const avgWin = r => r && r.hit > 0 && typeof r.rtp === 'number' ? r.rtp / r.hit : null;   // total win / total bet over the share of spins that won
+function render() { dirty = true; }
+function draw() {
+  if (!dirty) return; dirty = false;
+  const f = $('filter').value.toLowerCase(), sf = $('stfilter').value, list = [...rows.values()].filter(x => x.name.toLowerCase().includes(f) && (!sf || (x.r && x.r.status === sf)) && (QUICK.find(q => q[0] === qf) || QUICK[0])[2](x));
+  const rc = v => v === '' || v == null ? '' : 'r-' + RTP_BANDS.band(+v);   // same bands as the classifier labels
+  const dR = x => x.r && x.prev && x.r !== x.prev && x.r.rtp != null && x.prev.rtp != null ? +(x.r.rtp - x.prev.rtp).toFixed(3) : null;
+  const val = x => sortKey === 'dRtp' ? dR(x) ?? -99 : sortKey === 'name' ? x.name.toLowerCase() : sortKey === 'status' ? (x.r ? x.r.status : x.state) : (sortKey === 'avgWin' ? avgWin(x.r) : x.r && x.r[sortKey]) ?? -1;
+  list.sort((a, b) => { const A = val(a), B = val(b); return (A < B ? -1 : A > B ? 1 : 0) * sortDir; });
+  $('rows').innerHTML = list.map(x => {
+    const r = x.r, p = x.prog, run = x.state === 'running';
+    const st = run ? 'running' : x.state === 'queued' ? 'queued' : x.state === 'stopped' ? 'stopped' : (CLS[r && r.status] || 'queued');
+    const txt = run ? (p && p.progress === 'discovering map' ? 'discovering…' : 'running') : x.state === 'queued' ? 'queued' : x.state === 'stopped' ? 'stopped' : r.status;
+    const v = run && p && p.spins != null ? p : r;
+    const rtp = run && p && p.rtp != null ? p.rtp.toFixed(3) : r && r.rtp != null ? r.rtp : '';
+    return `<tr><td class="cp" style="cursor:copy" title="Click to copy ${x.name}.zip" data-zip="${x.name}.zip">${x.name}</td><td class="${st}">${txt}${x.old && !run ? ' (prev)' : ''}</td><td>${v && v.spins != null ? v.spins : ''}</td><td>${v && v.wins != null ? v.wins : ''}</td><td class="${rc(rtp)}">${rtp}</td><td>${r && !run ? r.hit ?? '' : ''}</td><td>${r && !run && avgWin(r) != null ? avgWin(r).toFixed(2) : ''}</td><td>${run && p && p.feats != null ? p.feats : r && r.features != null ? r.features : ''}</td><td>${r && !run ? r.featRtp ?? '' : ''}</td><td>${r && !run ? r.maxMult ?? '' : ''}</td><td>${r && !run ? r.spinsPerSec ?? '' : ''}</td><td>${run ? ((Date.now() - x.t0) / 1000).toFixed(0) : x.t1 ? ((x.t1 - x.t0) / 1000).toFixed(0) : r && r.secs != null ? r.secs : ''}</td><td>${r && !run ? r.discoverSecs ?? '' : ''}</td><td>${r && !run ? r.framesPerSpin ?? '' : ''}</td><td>${r && !run ? r.denom ?? '' : ''}</td><td class="${dR(x) > 0 ? 'up' : dR(x) < 0 ? 'down' : ''}">${!run && dR(x) != null ? (dR(x) > 0 ? '+' : '') + dR(x) : ''}</td><td class="err" style="cursor:copy" title="Click to copy">${r && !run ? [r.error, r.stuck ? 'stuck (frame cap)' : '', r.refused ? 'spin refused' : '', r.note].filter(Boolean).join('; ') : ''}</td></tr>`;
+  }).join('');
+  { const sel = $('stfilter'), have = new Set([...rows.values()].filter(x => x.r).map(x => x.r.status)), cur = sel.value; if (sel.options.length - 1 !== have.size) { sel.innerHTML = '<option value="">all</option>' + [...have].sort().map(k => `<option>${k}</option>`).join(''); sel.value = cur; } }
+  const all = [...rows.values()], fresh = all.filter(x => x.state === 'done' && !x.old), c = {};
+  for (const x of all) if (x.r && !(x.old && running)) c[x.r.status] = (c[x.r.status] || 0) + 1;
+  { const n = Object.values(c).reduce((a, b) => a + b, 0), sum = {}, cnt = {};
+    for (const x of all) if (x.r && !(x.old && running) && typeof x.r.rtp === 'number') { sum[x.r.status] = (sum[x.r.status] || 0) + x.r.rtp; cnt[x.r.status] = (cnt[x.r.status] || 0) + 1; }
+    $('stats').innerHTML = Object.entries(c).sort((a, b) => b[1] - a[1]).map(([k, m]) => `<button class="chip${sf === k ? ' on' : ''}" data-st="${k}" title="${(100 * m / n).toFixed(0)}% of ROMs${cnt[k] ? ', mean RTP ' + (sum[k] / cnt[k]).toFixed(2) : ''}">${k}<b>${m}</b></button>`).join('');
+    $('quick').innerHTML = QUICK.map(q => `<button class="chip${qf === q[0] ? ' on' : ''}" data-q="${q[0]}">${q[1]}<b>${all.filter(q[2]).length}</b></button>`).join(''); }
+  $('sum').textContent = `${all.length} ROMs · ${fresh.length} scanned this session · ${workers.size} running`;
+  $('prog').max = Math.max(1, all.filter(x => x.state !== 'stopped').length); $('prog').value = all.filter(x => x.state === 'done' && !x.old).length; $('pct').textContent = Math.round(100 * $('prog').value / $('prog').max) + '% (' + $('prog').value + '/' + $('prog').max + ')';
+}
+setInterval(() => { if (workers.size) dirty = true; draw(); }, 200);   // running rows redraw so the timer ticks
+
+async function launch(x) {
+  x.state = 'running'; x.prog = null; x.old = false; x.t0 = Date.now(); x.t1 = 0; workers.set(x.id, null); render();   // reserve the slot before the await, or pump() starts every queued ROM
+  const rec = await RomStore.get(x.id);
+  if (!rec) { workers.delete(x.id); return finish(x, { name: x.name, id: x.id, error: 'ROM not found', status: RTP_BANDS.L.error, secs: 0 }); }
+  let map = null; try { map = JSON.parse(localStorage.getItem('mk6-map-' + x.id)); } catch (e) {}
+  const w = new Worker('js/scan-worker.js'); workers.set(x.id, w);
+  if (x.state !== 'running') { w.terminate(); workers.delete(x.id); return; }
+  // a worker stuck inside one synchronous VM call cannot check its own clock, so the page terminates it
+  const dog = setTimeout(() => { if (workers.get(x.id) !== w) return; w.terminate(); workers.delete(x.id); finish(x, { name: x.name, id: x.id, timeout: true, error: 'hung in a single VM call, terminated', status: 'timed out', secs: ((Date.now() - x.t0) / 1000) | 0 }); }, (cfg().mins + 3) * 60e3);
+  w.onmessage = e => {
+    const m = e.data;
+    if (m.map) { try { localStorage.setItem('mk6-map-' + x.id, JSON.stringify(m.map)); } catch (e) {} }
+    else if (m.result) { clearTimeout(dog); w.terminate(); workers.delete(x.id); finish(x, m.result); }
+    else { x.prog = m; render(); }
+  };
+  w.onerror = e => { clearTimeout(dog); w.terminate(); workers.delete(x.id); finish(x, { name: x.name, id: x.id, error: 'worker crashed: ' + (e.message || ''), status: RTP_BANDS.L.error, secs: 0 }); };
+  w.postMessage({ id: x.id, name: x.name, buf: rec.buf, map, cfg: cfg() });
+}
+function finish(x, r) { if (x.r && x.old) x.prev = x.r; try { if (r && r.status) localStorage.setItem('mk6-scan-' + x.id, JSON.stringify(r)); } catch (e) {} x.t1 = Date.now(); x.r = r; x.state = 'done'; x.prog = null; render(); pump(); }
+function pump() {
+  if (!running) return;
+  const max = Math.max(1, +$('jobs').value || 1), f = $('filter').value.toLowerCase();
+  for (const x of rows.values()) {
+    if (workers.size >= max) break;
+    if (x.state === 'queued' && x.name.toLowerCase().includes(f) && !workers.has(x.id)) launch(x);
+  }
+  if (!workers.size && ![...rows.values()].some(x => x.state === 'queued' && x.name.toLowerCase().includes(f))) setRunning(false);
+  render();
+}
+function setRunning(on) { running = on; $('go').disabled = on; $('stop').disabled = !on; }
+
+$('go').onclick = () => {
+  const f = $('filter').value.toLowerCase();
+  for (const x of rows.values()) if (x.name.toLowerCase().includes(f) && (x.state === 'stopped' || x.old || (x.state === 'done' && $('rerun').checked))) x.state = 'queued';
+  setRunning(true); pump();
+};
+$('stop').onclick = () => {
+  for (const [id, w] of workers) { if (w) w.terminate(); const x = rows.get(id); x.state = 'stopped'; x.prog = null; }
+  workers.clear(); setRunning(false); render();
+};
+$('jobs').oninput = pump;   // live change: raises start more now; lowering lets running ones finish
+$('stats').onclick = e => { const b = e.target.closest('[data-st]'); if (!b) return; $('stfilter').value = $('stfilter').value === b.dataset.st ? '' : b.dataset.st; render(); };
+$('quick').onclick = e => { const b = e.target.closest('[data-q]'); if (!b) return; qf = b.dataset.q; render(); };
+$('filter').oninput = render; $('stfilter').onchange = render;
+$('clrmaps').onclick = () => {
+  let n = 0;
+  try { for (const k of Object.keys(localStorage)) if ((k.startsWith('mk6-map-') || k.startsWith('mk6-scan-'))) { localStorage.removeItem(k); n++; } } catch (e) {}
+  alert('Cleared ' + n + ' stored map' + (n === 1 ? '' : 's') + '.');
+};
+$('refail').onclick = () => {
+  for (const x of rows.values()) if (x.r && [RTP_BANDS.L.error, RTP_BANDS.L.timeout, RTP_BANDS.L.never].includes(RTP_BANDS.current(x.r.status)) && x.state !== 'running') x.state = 'queued';
+  setRunning(true); pump();
+};
+document.querySelectorAll('th[data-k]').forEach(th => th.onclick = () => { const k = th.dataset.k; sortDir = sortKey === k ? -sortDir : 1; sortKey = k; render(); });
+$('exp').onclick = () => {
+  const out = [...rows.values()].filter(x => x.r).map(x => x.r).sort((a, b) => a.name.localeCompare(b.name));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = 'rom-status.json'; a.click();
+};
+{ const n = navigator.hardwareConcurrency || 4; $('jobs').value = Math.max(1, n - Math.max(2, Math.round(n * 0.2))); }   // leave 20% of logical cores (min 2) for the OS: 18 -> 14, 8 -> 6, 4 -> 2
+loadList();
+</script>
+</body>
+</html>

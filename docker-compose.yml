@@ -1,0 +1,29 @@
+# Self-hosted Retro Pokies web player. ROMs are NOT included: put your own ROM zips in a folder and point the first volume line below at it.
+#   docker compose up -d --build      (run from the repository root; `podman compose` works too)
+services:
+  retro-pokies:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: retro-pokies:local
+    container_name: retro-pokies
+    restart: unless-stopped
+    ports:
+      # host port : container port. Change the left number to use another port. Add 127.0.0.1: in front ("127.0.0.1:8791:8791") to keep it off the network.
+      - "8791:8791"
+    volumes:
+      # 1. YOUR ROM FOLDER: edit the part before the first colon. Read-only: the container never changes your ROMs.
+      - /path/to/your/roms:/roms:ro
+      # 1b. IMAGES: screenshots, banners and generated banners are saved in an IMG folder inside your ROM folder (IMG/<game>/shot.png, marquee.png, ...).
+      #     Same path as line 1 plus /IMG. This folder alone is writable; create it first and let user id 10001 write to it (see README).
+      - /path/to/your/roms/IMG:/roms/IMG
+      # 2. Writable data (per-game notes, reports): a named volume. Use a folder instead if you like, e.g. ./aristo-data:/data
+      - aristo-data:/data
+    environment:
+      ARISTO_ROMS: /roms          # where the ROMs are inside the container (matches the volume above; no need to change)
+      ARISTO_IMG: /roms/IMG       # where images are saved (matches volume 1b); remove this line and volume 1b to keep images in /data instead
+      SHOT_JOBS: "2"              # ROMs rendered in parallel when you press "Scan screenshots" on the Games page
+      # ARISTO_READONLY: "1"      # uncomment to stop the page writing screenshots/notes into /data
+
+volumes:
+  aristo-data:

@@ -1,0 +1,32 @@
+{
+ "state": 217061416,
+ "stopBuf": 217061960,
+ "lineBets": 217061368,
+ "assigned": [],
+ "starter": 134275498,
+ "lineIdx": 3,
+ "betIdx": 2,
+ "lineKeys": {
+  "1": 1,
+  "3": 2,
+  "5": 3,
+  "7": 4,
+  "9": 5,
+  "12": 6
+ },
+ "betKeys": {
+  "1": 14,
+  "2": 13,
+  "3": 12,
+  "4": 11
+ },
+ "reels": 217065060,
+ "winRecords": 217062000,
+ "window": 217063960,
+ "win": 217061240,
+ "freeOwnStops": true,
+ "lineLabels": {
+  "12": "LUCKY DEVIL"
+ },
+ "freeState": 19
+}

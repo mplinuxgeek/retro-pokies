@@ -1,0 +1,36 @@
+{
+ "state": 217055724,
+ "stopBuf": 217055876,
+ "lineBets": 217055624,
+ "assigned": [],
+ "starter": 134257362,
+ "lineIdx": 0,
+ "betIdx": 0,
+ "lineKeys": {
+  "1": 1,
+  "5": 2,
+  "10": 3,
+  "20": 4,
+  "25": 5
+ },
+ "betKeys": {
+  "1": 14,
+  "2": 13,
+  "5": 12,
+  "10": 11,
+  "20": 10
+ },
+ "reels": 134228560,
+ "winRecords": 217055896,
+ "window": 217066708,
+ "win": 217055600,
+ "featureStops": [
+  41,
+  31,
+  9,
+  0,
+  0
+ ],
+ "reelsRam": 217131792,
+ "freeOwnStops": true
+}

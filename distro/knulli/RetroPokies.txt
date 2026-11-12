@@ -1,0 +1,32 @@
+Retro Pokies for Batocera / KNULLI handhelds (arm64), app mode
+==============================================================
+
+The Retro Pokies engine in Node.js with an SDL window, as a port. No ROMs are included: bring your own ROM zips.
+
+Install
+  1. Copy RetroPokies.sh, RetroPokies.sh.keys, RetroPokies.txt and the retro-pokies folder into /userdata/roms/ports/.
+  2. Put your ROM zips in /userdata/roms/ports/retro-pokies/Roms/.
+  3. In EmulationStation, update the games lists (or restart it); Retro Pokies appears under Ports.
+
+Buttons
+  A        SPIN; after a win PLAY ON, on the gamble screen COLLECT; answers a prompt; choose in the games list and the menu
+  B        back in the games list and the menu; opens the menu in a game
+  X        AUTO play on/off
+  Y        games list
+  SELECT   insert a note (add credits)
+  START    menu
+  D-pad    left/right: bet; up/down: lines; moves in the games list and the menu
+           on the gamble screen left: red, right: black; at a feature pick it moves between the choices (A picks)
+  L1       GAMBLE after a win; games list: page up
+  R1       paytable (R1 again: next page, any other button leaves); games list: page down
+  To quit: START, then Quit.
+
+The first run starts full screen without the banner (the game shows its own meters; the Menu button sits in the game's top right corner).
+The menu turns the banner and the control panel on or off.
+
+Files (all in retro-pokies/)
+  save/            settings, favourites, the money balance and the picture cache
+  retro-pokies.log the last run's messages
+  local.env        optional: shell settings read before start (for example ROMS=/userdata/roms/mk6 for another ROM folder)
+
+It is a preview: reel games only, wins are collected at once (no gamble or feature choices yet), no sound.

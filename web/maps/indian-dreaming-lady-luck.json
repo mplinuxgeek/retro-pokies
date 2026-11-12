@@ -1,0 +1,38 @@
+{
+ "state": 217055760,
+ "stopBuf": 217055968,
+ "lineBets": 217055620,
+ "assigned": [],
+ "starter": 134269058,
+ "lineIdx": 6,
+ "betIdx": 4,
+ "lineKeys": {
+  "1": 1,
+  "5": 2,
+  "10": 3,
+  "20": 4,
+  "30": 5,
+  "35": 6
+ },
+ "betKeys": {
+  "1": 14,
+  "2": 13,
+  "3": 12,
+  "5": 11,
+  "10": 10
+ },
+ "reels": 134236320,
+ "win": 217055596,
+ "featureStops": [
+  3,
+  45,
+  32,
+  6,
+  8
+ ],
+ "lineLabels": {
+  "35": "LADY LUCK"
+ },
+ "reelsRam": 217273776,
+ "freeOwnStops": true
+}

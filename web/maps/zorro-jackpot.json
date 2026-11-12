@@ -1,0 +1,32 @@
+{
+ "state": 217055764,
+ "stopBuf": 217055932,
+ "lineBets": 217055624,
+ "assigned": [],
+ "starter": 134257750,
+ "lineIdx": 6,
+ "betIdx": 4,
+ "lineKeys": {
+  "1": 1,
+  "5": 2,
+  "10": 3,
+  "20": 4,
+  "25": 5,
+  "35": 6
+ },
+ "betKeys": {
+  "1": 14,
+  "2": 13,
+  "3": 12,
+  "5": 11,
+  "10": 10
+ },
+ "reels": 217076744,
+ "winRecords": 217055972,
+ "window": 217062092,
+ "win": 217055600,
+ "lineLabels": {
+  "35": "ZORRO BONUS"
+ },
+ "freeOwnStops": true
+}

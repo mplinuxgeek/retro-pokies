@@ -1,0 +1,16 @@
+{
+    "actions_player1": [
+        { "trigger": "a",      "type": "key", "target": "KEY_SPACE",    "description": "SPIN (PLAY ON, COLLECT, a prompt's key); choose in the games list and the menu" },
+        { "trigger": "b",      "type": "key", "target": "KEY_ESC",      "description": "Back in the games list and the menu; the menu in a game" },
+        { "trigger": "x",      "type": "key", "target": "KEY_A",        "description": "AUTO play on/off" },
+        { "trigger": "y",      "type": "key", "target": "KEY_TAB",      "description": "Games list" },
+        { "trigger": "select", "type": "key", "target": "KEY_N",        "description": "Insert note (add credits)" },
+        { "trigger": "start",  "type": "key", "target": "KEY_F10",      "description": "Menu" },
+        { "trigger": "left",   "type": "key", "target": "KEY_LEFT",     "description": "Lower bet" },
+        { "trigger": "right",  "type": "key", "target": "KEY_RIGHT",    "description": "Higher bet" },
+        { "trigger": "up",     "type": "key", "target": "KEY_UP",       "description": "More lines" },
+        { "trigger": "down",   "type": "key", "target": "KEY_DOWN",     "description": "Fewer lines" },
+        { "trigger": "l1",     "type": "key", "target": "KEY_PAGEUP",   "description": "Games list: page up; GAMBLE in a game" },
+        { "trigger": "r1",     "type": "key", "target": "KEY_PAGEDOWN", "description": "Games list: page down; paytable in a game" }
+    ]
+}

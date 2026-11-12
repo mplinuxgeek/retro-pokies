@@ -1,0 +1,45 @@
+# Ignore any placed ROM files (users provide their own)
+roms/*
+!roms/.gitkeep
+!roms/README.md
+
+# Game library store written by server.py (screenshots, per-game metadata)
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# System & OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Build artifacts & temp
+/tmp/
+
+# static build (tools/build-pages.py), published from its own repository
+/dist/
+.claude/
+
+# desktop app: a Node runtime bundled by a packaged build
+/app/node/
+
+# ROM scanner (tools/classify.js): maps it discovers for ROMs with no shipped map
+/tools/cache/
+
+# old material kept beside or inside a checkout, never published
+/archive/

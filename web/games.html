@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retro Pokies</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="ui/marquee.css">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0704; --bg2: #140c06; --card: #1b120a; --card2: #24180d; --line: #3b2814; --line2: #5c3d1c;
+    --text: #f4e7c8; --muted: #b9a37a; --faint: #8a7552; --gold: #ffd862; --gold2: #e8a93a;
+    --ready: #4cd471; --maybe: #f3b63f; --broken: #e0675a; --unknown: #9a9a9f;
+    --radius: 14px; --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { background: radial-gradient(1200px 500px at 50% -120px, #3a220c 0%, rgba(58, 34, 12, 0) 70%), var(--bg); min-height: 100vh; }
+  a { color: var(--gold); }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid #7fc8ff; outline-offset: 2px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+  @media (min-width: 1700px) { .wrap { max-width: 1640px; } .grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } }
+
+  /* header */
+  header { padding: 28px 0 18px; }
+  /* the cabinet-style banner and LCD (ui/marquee.css, js/uiprefs.js) above the toolbar: the site name over the last played game's attract art,
+     the LCD with this browser's totals across every game. The list shows only the LCD (uiprefs: data-list); with the banner on, the brand line is redundant and hides; with both off the strip goes. */
+  #marquee { --radius: 6px; --edge: #1c1209; max-width: 800px; margin: 0 auto 18px; height: clamp(120px, 24vw, 230px); }
+  #marquee.nobanner { height: auto; }
+  #marquee.nobanner.nolcd { display: none; }
+  #marquee ~ .top .brand { display: none; }
+  #marquee.nobanner ~ .top .brand { display: flex; }
+  #uiprefs > summary.btn { display: inline-flex; }
+  .top { display: flex; align-items: center; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 14px; margin-right: auto; min-width: 0; }
+  .brand > div { min-width: 0; }
+  /* Add games, display settings and the developer switch stay together on one line; on narrow screens they shrink to icons (media queries below) */
+  .acts { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; }
+  .acts .btn, .acts summary.btn { white-space: nowrap; }
+  /* the list has no buttons over its LCD strip (play.html's #topbar), so the strip needs no room above the LCD */
+  #marquee.nobanner .mqbody, #marquee.nobanner.nolcd .mqbody { padding: 10px 12px; }
+  .brand img { width: 46px; height: 46px; border-radius: 12px; box-shadow: 0 0 0 1px var(--line2), 0 6px 18px rgba(255, 190, 60, .18); }
+  /* the banner title's lettering (Bungee, ui/marquee.css), kept for the site name, since the list has no banner */
+  .brand h1 { margin: 0; font: 400 28px/1.05 'Bungee', Impact, 'Arial Black', sans-serif; letter-spacing: .03em; text-transform: uppercase; background: linear-gradient(180deg, #fffbe0 0%, #ffe27a 42%, #f0a030 58%, #ffcf5a 100%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; filter: drop-shadow(0 2px 0 #5a1d00) drop-shadow(0 0 10px rgba(0,0,0,.85)); }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line2); background: var(--card2); border-radius: 999px; padding: 8px 16px; cursor: pointer; color: var(--text); text-decoration: none; transition: background .15s, border-color .15s; }
+  .btn:hover { background: #33220f; border-color: #7a5326; }
+  .btn.primary { background: linear-gradient(180deg, #ffd862, #e8a93a); color: #2a1803; border-color: #f6c24d; font-weight: 700; }
+  .btn.primary:hover { background: linear-gradient(180deg, #ffe285, #f0b448); }
+  .btn.small { padding: 5px 12px; font-size: 13px; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; user-select: none; }
+  .switch input { appearance: none; width: 34px; height: 20px; border-radius: 999px; background: #3a2a18; border: 1px solid var(--line2); position: relative; cursor: pointer; margin: 0; }
+  .switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+  .switch input:checked { background: #5a3f12; }
+  .switch input:checked::after { transform: translateX(14px); background: var(--gold); }
+
+  /* toolbar */
+  .tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 22px 0 8px; }
+  .search { position: relative; flex: 1 1 260px; max-width: 420px; }
+  .search input { width: 100%; padding: 10px 14px 10px 38px; border-radius: 999px; border: 1px solid var(--line2); background: var(--bg2); }
+  .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); opacity: .6; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 6px 13px; cursor: pointer; color: var(--muted); font-size: 14px; }
+  .chip:hover { color: var(--text); border-color: var(--line2); }
+  .chip[aria-pressed="true"] { background: var(--card2); color: var(--text); border-color: var(--gold2); }
+  .chip .n { color: var(--faint); margin-left: 4px; font-size: 12px; }
+  .sort { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+  .sort select { background: var(--bg2); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 8px; }
+  #count { color: var(--faint); font-size: 13px; margin: 2px 0 14px; }
+
+  /* developer bar */
+  #devbar { display: none; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; margin: 6px 0 14px; border: 1px dashed var(--line2); border-radius: 10px; background: rgba(20, 12, 6, .7); font-size: 13px; color: var(--muted); }
+  body.devmode #devbar { display: flex; }
+  #devbar select { background: var(--bg2); border: 1px solid var(--line2); border-radius: 8px; padding: 4px 6px; }
+  #dropmsg { flex-basis: 100%; color: var(--muted); min-height: 1em; }
+
+  /* grid and cards */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
+  .sect { margin: 6px 0 12px; font-size: 15px; font-weight: 700; color: var(--gold); letter-spacing: .02em; }
+  .sect .n { color: var(--faint); font-weight: 400; margin-left: 6px; font-size: 13px; }
+  #favsec { display: none; margin-bottom: 26px; }
+  .card { position: relative; background: linear-gradient(180deg, var(--card2), var(--card)); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--line2); }
+  /* the game's marquee (its attract art, mostly 640x300): every card's banner is the same shape, so the same height in a row */
+  .thumb { position: relative; display: block; aspect-ratio: 32 / 15; background: #000; overflow: hidden; }
+  .thumb img.mq { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; display: block; transition: transform .3s; }
+  .card:hover .thumb img.mq { transform: scale(1.04); }
+  /* the screenshot shown beside the card while the pointer is over its marquee */
+  #peek { position: fixed; z-index: 20; width: min(420px, 46vw); aspect-ratio: 4 / 3; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--line2); box-shadow: 0 16px 40px rgba(0, 0, 0, .7); pointer-events: none; opacity: 0; transition: opacity .12s; }
+  #peek.on { opacity: 1; }
+  #peek img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (hover: none) { #peek { display: none; } }
+  /* no hover on phones: while a banner is on screen it fades to the game's screenshot and back */
+  .thumb img.sh { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; }
+  @media (hover: none) and (prefers-reduced-motion: no-preference) { .thumb.cyc img.sh { animation: shotfade 9s ease-in-out infinite; } }
+  @keyframes shotfade { 0%, 40% { opacity: 0; } 50%, 90% { opacity: 1; } 100% { opacity: 0; } }
+  .ph { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 12px 44px 38px; font-weight: 800; font-size: 22px; line-height: 1.15; color: rgba(255, 240, 200, .9); text-shadow: 0 2px 8px rgba(0, 0, 0, .6); }
+  .playov { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, .35); opacity: 0; transition: opacity .15s; }
+  .playov span { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(180deg, #ffd862, #e8a93a); color: #2a1803; font-size: 24px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); padding-left: 4px; }
+  .thumb:hover .playov, .thumb:focus-visible .playov { opacity: 1; }
+  .status { position: absolute; left: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: rgba(10, 6, 2, .78); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, .08); }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+  .status.ready { color: var(--ready); } .status.maybe { color: var(--maybe); } .status.broken { color: var(--broken); } .status.unknown { color: var(--unknown); }
+  .fav { position: absolute; right: 8px; top: 6px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(10, 6, 2, .6); color: #cdb98d; font-size: 18px; cursor: pointer; line-height: 1; }
+  .fav:hover { color: var(--gold); background: rgba(10, 6, 2, .85); }
+  .fav[aria-pressed="true"] { color: var(--gold); background: rgba(42, 26, 6, .9); box-shadow: 0 0 0 1px var(--gold2), 0 0 10px rgba(255, 200, 80, .35); }
+  .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .body h2 { margin: 0; font-size: 16px; line-height: 1.25; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .warn { color: var(--maybe); font-size: 12px; }
+  .dev { display: none; }
+  body.devmode .dev { display: block; }
+  .devinfo { font-size: 12px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; }
+  .devinfo details summary { cursor: pointer; color: var(--gold2); }
+  .devinfo .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .copy { cursor: copy; }
+
+  /* empty state and add-games dialog */
+  #empty { display: none; text-align: center; padding: 60px 20px; color: var(--muted); }
+  #empty h2 { color: var(--text); margin: 0 0 8px; }
+  dialog { border: 1px solid var(--line2); border-radius: 16px; background: var(--card); color: var(--text); padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: var(--shadow); }
+  dialog::backdrop { background: rgba(0, 0, 0, .6); }
+  .dlg { padding: 22px; }
+  .dlg h2 { margin: 0 0 6px; }
+  .dlg p { color: var(--muted); margin: 0 0 14px; }
+  #drop { border: 2px dashed var(--line2); border-radius: 12px; padding: 26px 16px; text-align: center; color: var(--muted); transition: background .15s, border-color .15s; }
+  #drop.over, body.dragging #drop { background: #2a1a0a; border-color: var(--gold); color: var(--text); }
+  #drop .big { font-size: 34px; display: block; margin-bottom: 4px; }
+  .dlg .acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .dlg .close { display: flex; justify-content: flex-end; margin-top: 16px; }
+  #addmsg { margin-top: 10px; font-size: 13px; color: var(--muted); min-height: 1em; text-align: center; }
+  footer { color: var(--faint); font-size: 12px; text-align: center; padding: 40px 0 30px; }
+
+  /* phones: one-line header, search and sort side by side, filter chips in a sideways strip, two tight columns of cards */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 12px; }
+    header { padding: 12px 0 4px; }
+    .top { gap: 10px; flex-wrap: nowrap; }
+    .brand { gap: 10px; min-width: 0; }
+    .brand img { width: 34px; height: 34px; border-radius: 9px; }
+    .brand h1 { font-size: clamp(15px, 5.4vw, 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand p { display: none; }
+    .acts { gap: 8px; }
+    #addbtn { padding: 0 12px; height: 38px; font-size: 14px; }
+    #uiprefs > summary.btn { width: 38px; height: 38px; padding: 0; justify-content: center; font-size: 17px; }
+    #uiprefs .lbl { display: none; }
+    #marquee { margin-bottom: 10px; }
+    #marquee.nobanner .mqbody { padding: 7px 8px; }
+    .switch .lbl { display: none; }
+    .tools { gap: 8px; margin: 12px 0 4px; }
+    .search { flex: 1 1 0; min-width: 0; max-width: none; }
+    .search input { padding: 7px 10px 7px 34px; }
+    .sort { order: 2; margin-left: 0; font-size: 0; }
+    .sort select { font-size: 14px; padding: 6px 4px; max-width: 150px; }
+    .chips { order: 3; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { white-space: nowrap; padding: 5px 11px; font-size: 13px; }
+    #count { margin: 4px 0 8px; }
+    .sect { margin: 2px 0 8px; }
+    #favsec { margin-bottom: 16px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .card { border-radius: 10px; }
+    .ph { font-size: 15px; padding: 6px 30px 26px; }
+    .status { left: 5px; bottom: 5px; padding: 2px 7px; font-size: 10.5px; gap: 4px; }
+    .status i { width: 6px; height: 6px; }
+    .fav { width: 28px; height: 28px; font-size: 15px; right: 5px; top: 5px; }
+    .body { padding: 7px 9px 9px; gap: 2px; }
+    .body h2 { font-size: 13.5px; }
+    .sub { font-size: 11.5px; }
+    footer { padding: 24px 0 20px; }
+  }
+  @media (max-width: 480px) { #addbtn .more { display: none; } }
+  @media (max-width: 400px) { #addbtn { width: 38px; padding: 0; justify-content: center; font-size: 18px; } #addbtn .lbl { display: none; } }
+  @media (max-width: 340px) { .brand img { display: none; } .sort select { max-width: 112px; } .status { font-size: 9.5px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } }
+  /* tablets: search and sort share the first toolbar row, the filter chips take the next */
+  @media (min-width: 641px) and (max-width: 1100px) {
+    .search { order: 1; max-width: none; }
+    .sort { order: 2; margin-left: 0; }
+    .chips { order: 3; flex: 1 1 100%; }
+  }
+  /* phones on their side and other short windows: a compact header so the first row of games shows without scrolling */
+  @media (max-height: 520px) and (min-width: 641px) {
+    header { padding: 8px 0 4px; }
+    #marquee { margin-bottom: 8px; }
+    #marquee.nobanner .mqbody { padding: 6px 8px; }
+    #lcd .cell span { font-size: 10.5px; }
+    #lcd .cell b { font-size: 18px; }
+    .brand img { width: 34px; height: 34px; border-radius: 9px; }
+    .brand h1 { font-size: 22px; }
+    .brand p { display: none; }
+    .switch .lbl { display: none; }
+    .tools { margin: 10px 0 4px; gap: 8px; flex-wrap: nowrap; }
+    .search { flex: 0 1 240px; min-width: 150px; }
+    .search input { padding: 7px 10px 7px 34px; }
+    .chips { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .chips::-webkit-scrollbar { display: none; }
+    .chip { white-space: nowrap; padding: 5px 11px; font-size: 13px; }
+    .sort { margin-left: 0; font-size: 0; }
+    .sort select { font-size: 13px; }
+    #count { margin: 2px 0 8px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div id="marquee" data-list="1"><div class="art" aria-hidden="true"></div><div class="glow" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div><div class="mqbody"><h1 id="gtitle">Retro Pokies</h1>
+    <div id="lcd" role="group" aria-label="Totals across your games" title="Across every game in this browser: credit balance, total bet, total won"><div class="cell"><span>CREDIT</span><b id="hcr">–</b></div><div class="cell"><span>BET</span><b id="hbet">–</b></div><div class="cell"><span>WIN</span><b id="hwin">–</b></div></div></div></div>
+  <div class="top">
+    <div class="brand">
+      <img src="favicon.png" alt="">
+      <div>
+        <h1>Retro Pokies</h1>
+        <p>Classic pokie games, running right in your browser. Play money only.</p>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="btn primary" id="addbtn" type="button" aria-label="Add games"><span aria-hidden="true">＋</span><span class="lbl"> Add<span class="more"> games</span></span></button>
+      <span id="uihost"></span>
+      <label class="switch" title="Show scan results, screenshot tools and technical details"><input type="checkbox" id="devsw" aria-label="Developer"> <span class="lbl">Developer</span></label>
+    </div>
+  </div>
+
+  <div class="tools">
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search games" aria-label="Search games">
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Filter games"></div>
+    <label class="sort">Sort
+      <select id="sort">
+        <option value="az">A to Z</option>
+        <option value="za">Z to A</option>
+        <option value="recent">Recently played</option>
+        <option value="best">Best working first</option>
+        <option value="lines">Most lines</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="devbar">
+    <button class="btn small" id="shots" type="button" title="Take a screenshot of every game (on the server when it can store them)">Scan screenshots</button>
+    <label class="switch"><input type="checkbox" id="shotall"> include games that have one</label>
+    <span>·</span>
+    <button class="btn small" id="vfilter" type="button" aria-pressed="false">Visually broken</button>
+    <select id="vsub" title="Visual failure type"></select>
+    <button class="btn small" id="vcsv" type="button" title="Download the visually broken list as CSV">Download list</button>
+    <span>·</span>
+    <button class="btn small" id="rescan" type="button" title="Rescan now every game whose result, screenshot or marquee came from older code">Rescan now</button>
+    <span id="scanst"></span>
+    <span id="store"></span>
+    <span id="dropmsg" role="status"></span>
+  </div>
+  <div id="count"></div>
+</header>
+
+<main class="wrap">
+  <section id="favsec" aria-labelledby="favhead">
+    <h2 class="sect" id="favhead">★ Favourites<span class="n"></span></h2>
+    <div class="grid" id="favgrid"></div>
+  </section>
+  <h2 class="sect" id="allhead" hidden>Everything else</h2>
+  <div class="grid" id="grid"></div>
+  <div id="peek" aria-hidden="true"><img alt=""></div>
+  <div id="empty">
+    <h2>No games yet</h2>
+    <p>Add your ROM zips to start playing. They stay on this device or your server; nothing is uploaded anywhere else.</p>
+    <button class="btn primary" type="button" onclick="document.getElementById('addbtn').click()">＋ Add games</button>
+  </div>
+</main>
+
+<dialog id="adddlg" aria-labelledby="addtitle">
+  <div class="dlg">
+    <h2 id="addtitle">Add games</h2>
+    <p>Pick the ROM zip files (or a whole ROMs folder). They are read in place, no unzipping needed. ROMs in the server's <code>roms/</code> folder show up by themselves.</p>
+    <div id="drop"><span class="big">🎰</span>Drop ROM zips here</div>
+    <div class="acts">
+      <label class="btn">Choose files<input id="files" type="file" accept=".zip" multiple hidden></label>
+      <button class="btn" id="scan" type="button">Choose a ROMs folder</button>
+      <input id="dirin" type="file" webkitdirectory multiple hidden>
+    </div>
+    <div id="addmsg" role="status"></div>
+    <div class="close"><button class="btn" type="button" onclick="this.closest('dialog').close()">Done</button></div>
+  </div>
+</dialog>
+
+<footer class="wrap">A play-money simulator for preservation and study. You need your own ROMs. See <a href="NOTICE.md">NOTICE.md</a>.</footer>
+
+<script src="js/romstore.js"></script>
+<script src="js/rtp-bands.js"></script>
+<script src="js/uiprefs.js"></script>
+<script>
+(async function () {
+  const $ = id => document.getElementById(id);
+  const slug = n => n.toLowerCase().replace(/\.zip$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const ls = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+  };
+  // the ☰ Menu sets how play.html opens a game (banner, LCD; this page keeps only its totals LCD, no banner here) and clears the statistics.
+  // Applied before anything is fetched so the first paint is right
+  UIPREFS.apply(); UIPREFS.panel($('uihost'), { summaryClass: 'btn small', list: true }).querySelector('.pane').insertAdjacentHTML('beforeend',
+    '<hr><h5>Statistics</h5><label><span>Bet and won, every game</span><button type="button" id="ui-clearstats">Clear</button></label>');
+  // Clear removes every game's statistics (emu-stats-<id>: these totals and each game's Statistics page); the wallet stays
+  $('ui-clearstats').onclick = () => { if (!confirm('Clear the bet and won totals and the statistics of every game? The credit stays.')) return;
+    try { Object.keys(localStorage).filter(k => k.startsWith('emu-stats-')).forEach(k => localStorage.removeItem(k)); } catch (e) {} lcdTotals(); };
+  // the LCD: the wallet every game shares (emu-wallet, in cents; $1000 before any game is played) and this browser's totals bet and won over every
+  // game, from play.html's per-game store (emu-stats-<id> in credits, emu-denom-<id> in cents; a game that never had its denomination saved counts at 1c)
+  const lcdTotals = () => {
+    let cr = 0, bet = 0, won = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i); if (!k || !k.startsWith('emu-stats-')) continue;
+        const id = k.slice(10), denom = +JSON.parse(localStorage.getItem('emu-denom-' + id)) || 1, st = JSON.parse(localStorage.getItem(k)) || {};
+        bet += (+st.wagered || 0) * denom; won += (+st.won || 0) * denom;
+      }
+      const w = JSON.parse(localStorage.getItem('emu-wallet')); cr = Number.isFinite(w) ? w : 100000;
+    } catch (e) {}
+    const usd = c => '$' + (c / 100).toFixed(2);
+    $('hcr').textContent = usd(cr); $('hbet').textContent = usd(bet); $('hwin').textContent = usd(won);
+  };
+  lcdTotals(); addEventListener('storage', lcdTotals); addEventListener('pageshow', lcdTotals);
+
+  // ---- status: rom-status.json (the latest scan) in four groups; a card shows the scan's own label
+  const GROUPS = {
+    ready: 'Pays normally',
+    maybe: 'Pays high or low',
+    broken: 'Not working yet',
+    unknown: 'Not checked yet',
+  };
+  const L = RTP_BANDS.L, GROUP_OF = {
+    [L.normal]: 'ready',
+    [L.abitlow]: 'maybe', [L.low]: 'maybe', [L.high]: 'maybe',
+    [L.verylow]: 'broken', [L.never]: 'broken', [L.rarely]: 'broken', [L.always]: 'broken', [L.error]: 'broken', [L.timeout]: 'broken',
+  };
+  const RANK = { ready: 0, maybe: 1, unknown: 2, broken: 3 };
+
+  const ST = {};
+  // the scanner service's state (followScan below) and a result's age
+  const scan = { state: null, request: null };
+  const ago = t => { const m = Math.max(0, (Date.now() / 1000 - t) / 60) | 0; return m < 60 ? m + ' min ago' : m < 2880 ? (m / 60 | 0) + ' h ago' : (m / 1440 | 0) + ' days ago'; };
+  const loadStatus = async () => { try { for (const r of await (await fetch('rom-status.json', { cache: 'no-cache' })).json()) ST[r.id] = r; } catch (e) {} };
+  await loadStatus();
+
+  // visual-failure reports from play.html (server file, plus marks kept in this browser when the server was unavailable)
+  let VF = {};
+  try { VF = await (await fetch('visual-feedback.json', { cache: 'no-cache' })).json(); } catch (e) {}
+  VF = Object.fromEntries(Object.entries(VF).filter(([, v]) => v && v.type === 'broken'));
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k.startsWith('mk6-visual-')) continue;
+      const o = JSON.parse(localStorage.getItem(k));
+      if (o && o.type === 'broken' && !VF[k.slice(11)]) VF[k.slice(11)] = o;
+    }
+  } catch (e) {}
+
+  // the list: every ROM on the server, in this browser or in the scan; games.json (catalogue) only adds titles, zip sizes and symbol details
+  const CAT = {};
+  try { for (const g of (await (await fetch('games.json', { cache: 'no-cache' })).json()).games) CAT[slug(g.zip)] = g; } catch (e) {}
+  let lib = new Set(await RomStore.list().catch(() => []));
+  const serverList = await RomStore.serverList().catch(() => []);
+  const serverRoms = new Set(serverList.map(r => slug(r.name)));
+  const ROMNAME = Object.fromEntries(serverList.map(r => [slug(r.name), r]));
+  const titleOf = id => (CAT[id] && CAT[id].title) || (ST[id] && ST[id].name) || (ROMNAME[id] ? ROMNAME[id].name.replace(/\.zip$/i, '') : id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+  const games = [...new Set([...Object.keys(CAT), ...Object.keys(ST), ...lib])].map(id => {
+    const c = CAT[id] || {};
+    return { ...c, id, title: titleOf(id), zip: c.zip || (ROMNAME[id] ? ROMNAME[id].name : id + '.zip'), size: c.size || (ROMNAME[id] && ROMNAME[id].size) || 0 };
+  });
+  // the scan result on each game (again after a rescan)
+  const applyStatus = () => {
+    for (const g of games) {
+      const rs = ST[g.id], label = rs ? RTP_BANDS.current(rs.status) : null;
+      Object.assign(g, { rs, label: label || GROUPS.unknown, group: (label && GROUP_OF[label]) || 'unknown' });
+    }
+  };
+  applyStatus();
+
+  // ---- game library store on the server (server.py /api/library): screenshots and metadata shared by every browser
+  let server = null;
+  try {
+    const r = await fetch('/api/library', { cache: 'no-cache' });
+    server = r.ok ? await r.json() : null;
+  } catch (e) { server = null; }
+  const serverShot = id => {
+    const rec = server && server.games[id];
+    // shot.jpg comes from a browser scan, shot.png from the server's scanner (tools/shots.js): the newer one wins
+    const f = rec && rec.files.filter(x => x.name === 'shot.jpg' || x.name === 'shot.png').sort((a, b) => b.mtime - a.mtime)[0];
+    return f ? '/api/games/' + encodeURIComponent(id) + '/files/' + f.name + '?v=' + f.mtime : null;
+  };
+  async function putServerShot(id, blob, info) {
+    if (!server || !server.writable) return false;
+    try {
+      const base = '/api/games/' + encodeURIComponent(id);
+      const r = await fetch(base + '/files/shot.jpg', { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+      if (!r.ok) return false;
+      const { file } = await r.json();
+      await fetch(base + '/meta', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ shot: info }) });
+      const rec = server.games[id] || (server.games[id] = { meta: {}, files: [] });
+      rec.files = rec.files.filter(x => x.name !== 'shot.jpg').concat(file);
+      rec.meta.shot = info;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  // screenshots kept in this browser (IndexedDB mk6-shots): used when the page has no server store
+  const sdb = () => new Promise((res, rej) => { const r = indexedDB.open('mk6-shots', 1); r.onupgradeneeded = () => r.result.createObjectStore('s'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const sput = async (id, v) => { try { const db = await sdb(); db.transaction('s', 'readwrite').objectStore('s').put(v, id); } catch (e) {} };
+  const LOCAL_SHOTS = {};
+  try {
+    const db = await sdb();
+    await new Promise(res => {
+      const q = db.transaction('s').objectStore('s').openCursor();
+      q.onsuccess = () => { const c = q.result; if (!c) return res(); LOCAL_SHOTS[c.key] = c.value; c.continue(); };
+      q.onerror = () => res();
+    });
+  } catch (e) {}
+  const shotOf = id => serverShot(id) || LOCAL_SHOTS[id] || null;
+  // the marquee (attract art) that tools/shots.js caches beside the screenshot
+  const marqueeOf = id => {
+    const rec = server && server.games[id];
+    const f = rec && rec.files.filter(x => x.name === 'marquee.jpg' || x.name === 'marquee.png').sort((a, b) => b.mtime - a.mtime)[0];
+    return f ? '/api/games/' + encodeURIComponent(id) + '/files/' + f.name + '?v=' + f.mtime : null;
+  };
+  // the banner's art: the last played game's marquee, when the server has one
+  {
+    const last = games.map(g => [+(ls.get('mk6-played-' + g.id) || 0), g.id]).sort((a, b) => b[0] - a[0]).find(x => x[0] && marqueeOf(x[1]));
+    if (last) document.querySelector('#marquee .art').style.backgroundImage = 'url("' + marqueeOf(last[1]) + '")';
+  }
+
+  // ---- per-browser bits: favourites, last played, developer view
+  const favs = new Set(JSON.parse(ls.get('mk6-favs') || '[]'));
+  const saveFavs = () => ls.set('mk6-favs', JSON.stringify([...favs]));
+  const played = id => +(ls.get('mk6-played-' + id) || 0);
+  const dev = $('devsw');
+  dev.checked = ls.get('mk6-dev') === '1';
+  const applyDev = () => { document.body.classList.toggle('devmode', dev.checked); ls.set('mk6-dev', dev.checked ? '1' : '0'); };
+  dev.onchange = () => { applyDev(); render(); };
+  applyDev();
+
+  // ---- filters
+  let filter = ['all', 'fav'].includes(ls.get('mk6-filter')) ? ls.get('mk6-filter') : 'all', q = '', sort = ls.get('mk6-sort-v2') || 'az', visualOnly = false, vsub = '';
+  $('sort').value = sort;
+  const FILTERS = [['all', 'All games'], ['fav', '★ Favourites']];
+  const inLib = g => lib.has(g.id);
+  const matches = (g, f) => {
+    if (!inLib(g)) return false;
+    if (visualOnly && (!VF[g.id] || (vsub && VF[g.id].sub !== vsub))) return false;
+    if (f === 'all') return true;
+    if (f === 'fav') return favs.has(g.id);
+    if (f === 'broken') return g.group === 'broken' || g.group === 'unknown';
+    return g.group === f;
+  };
+  for (const [key, label] of FILTERS) {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.dataset.f = key;
+    b.innerHTML = '<span></span><span class="n"></span>';
+    b.firstChild.textContent = label;
+    b.onclick = () => { filter = key; ls.set('mk6-filter', key); render(); };
+    $('chips').appendChild(b);
+  }
+  $('q').oninput = e => { q = e.target.value.trim().toLowerCase(); render(); };
+  $('sort').onchange = e => { sort = e.target.value; ls.set('mk6-sort-v2', sort); render(); };
+  $('vfilter').onclick = () => { visualOnly = !visualOnly; render(); };
+  $('vsub').onchange = e => { vsub = e.target.value; render(); };
+  $('vcsv').onclick = () => {
+    const esc = s => '"' + String(s ?? '').replace(/"/g, '""') + '"';
+    const rows = [['id', 'title', 'failure type', 'reported']];
+    for (const g of games) {
+      const v = VF[g.id];
+      if (!v || !inLib(g) || (vsub && v.sub !== vsub)) continue;
+      rows.push([g.id, g.title, v.sub, v.at ? new Date(v.at * 1000).toISOString() : '']);
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([rows.map(r => r.map(esc).join(',')).join('\n')], { type: 'text/csv' }));
+    a.download = 'visual-feedback.csv'; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  // ---- cards
+  const hue = s => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+  // lines and features as the scan played them (the catalogue's line count is only a guess)
+  const describe = g => {
+    const f = g.found || {}, r = g.rs || {}, bits = [];
+    if (r.lines) bits.push(r.lines + (r.lines === 1 ? ' line' : ' lines'));
+    const nr = f.reels || (f.strip_lengths && f.strip_lengths.length); if (nr) bits.push(nr + ' reels');
+    if (r.features || r.hasFree) bits.push('free games');
+    return bits.join(' · ');
+  };
+  // hovering a marquee shows the game's screenshot beside the card (on the side with more room)
+  const peek = $('peek');
+  let peekT = 0;
+  const showPeek = (el, src) => {
+    clearTimeout(peekT);
+    peekT = setTimeout(() => {
+      peek.firstChild.src = src;
+      const r = el.getBoundingClientRect(), w = peek.offsetWidth, h = peek.offsetHeight, gap = 12;
+      const x = innerWidth - r.right >= w + gap ? r.right + gap : r.left >= w + gap ? r.left - w - gap : Math.max(8, Math.min(innerWidth - w - 8, r.left));
+      const y = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2));
+      peek.style.left = x + 'px'; peek.style.top = y + 'px';
+      peek.classList.add('on');
+    }, 120);
+  };
+  const hidePeek = () => { clearTimeout(peekT); peek.classList.remove('on'); };
+  addEventListener('scroll', hidePeek, { passive: true });
+  // phones: banners mostly on screen crossfade to their screenshot (loaded when first seen); render() starts a fresh set
+  const cycler = matchMedia('(hover: none)').matches && 'IntersectionObserver' in window ? new IntersectionObserver(es => {
+    for (const e of es) {
+      const s = e.target.querySelector('img.sh');
+      if (e.isIntersecting && !s.src) s.src = s.dataset.src;
+      e.target.classList.toggle('cyc', e.isIntersecting);
+    }
+  }, { threshold: .6 }) : null;
+  function card(g) {
+    const id = g.id, el = document.createElement('article');
+    el.className = 'card';
+
+    const thumb = document.createElement('a');
+    thumb.className = 'thumb'; thumb.href = 'play.html?game=' + id;
+    thumb.setAttribute('aria-label', 'Play ' + g.title);
+    thumb.onclick = () => ls.set('mk6-played-' + id, String(Date.now()));
+    const mq = marqueeOf(id), shot = shotOf(id);
+    if (mq) {
+      const im = document.createElement('img');
+      im.className = 'mq'; im.alt = ''; im.loading = 'lazy'; im.src = mq;
+      thumb.appendChild(im);
+    } else {
+      const h = hue(g.title), ph = document.createElement('div');
+      ph.className = 'ph'; ph.textContent = g.title;
+      ph.style.background = `radial-gradient(circle at 30% 20%, hsl(${h} 55% 32%), hsl(${(h + 40) % 360} 60% 12%))`;
+      thumb.appendChild(ph);
+    }
+    if (shot) { thumb.onmouseenter = () => showPeek(thumb, shot); thumb.onmouseleave = hidePeek; }
+    if (shot && cycler) {
+      const s = document.createElement('img');
+      s.className = 'sh'; s.alt = ''; s.dataset.src = shot;
+      s.style.animationDelay = (Math.random() * 4).toFixed(1) + 's';
+      thumb.appendChild(s); cycler.observe(thumb);
+    }
+    const ov = document.createElement('div');
+    ov.className = 'playov'; ov.innerHTML = '<span aria-hidden="true">▶</span>';
+    thumb.appendChild(ov);
+    const st = document.createElement('span');
+    st.className = 'status ' + g.group; st.innerHTML = '<i></i>';
+    st.title = g.rs ? 'Latest scan: RTP ' + g.rs.rtp + ' over ' + g.rs.spins + ' spins' : 'Not scanned yet';
+    st.append(g.label);
+    if (!/^Pays /.test(g.label)) thumb.appendChild(st);   // no pill for a game that pays (a "Pays ..." label)
+    el.appendChild(thumb);
+
+    const fav = document.createElement('button');
+    fav.className = 'fav'; fav.type = 'button'; fav.textContent = favs.has(id) ? '★' : '☆';
+    fav.setAttribute('aria-pressed', favs.has(id)); fav.setAttribute('aria-label', 'Favourite ' + g.title);
+    fav.title = favs.has(id) ? 'Remove from favourites' : 'Add to favourites';
+    fav.onclick = () => { favs.has(id) ? favs.delete(id) : favs.add(id); saveFavs(); render(); };
+    el.appendChild(fav);
+
+    const body = document.createElement('div');
+    body.className = 'body';
+    const h2 = document.createElement('h2');
+    h2.textContent = g.title;
+    body.appendChild(h2);
+    const sub = document.createElement('div');
+    sub.className = 'sub'; sub.textContent = describe(g) || ' ';
+    body.appendChild(sub);
+    if (VF[id]) {
+      const w = document.createElement('div');
+      w.className = 'warn'; w.textContent = '⚠ Known display problems' + (VF[id].sub ? ': ' + VF[id].sub : '');
+      body.appendChild(w);
+    }
+    // a copy stored in this browser (added by drop or file picker) can be removed by the player; ROMs from the server's roms/ folder cannot
+    if (lib.has(id) && !serverRoms.has(id)) {
+      const rm = document.createElement('button');
+      rm.className = 'btn small rmrom'; rm.type = 'button'; rm.textContent = 'Remove from this browser';
+      rm.title = 'Delete this game\'s ROM copy saved in this browser (your original file is not touched)';
+      rm.onclick = async () => { await RomStore.del(id); lib = new Set(await RomStore.list().catch(() => [])); render(); };
+      body.appendChild(rm);
+    }
+    if (dev.checked) body.appendChild(devInfo(g));
+    el.appendChild(body);
+    return el;
+  }
+  function devInfo(g) {
+    const f = g.found || {}, d = document.createElement('div'), r = g.rs;
+    d.className = 'devinfo dev';
+    const line = t => { const x = document.createElement('div'); x.textContent = t; d.appendChild(x); };
+    line(r ? g.label + (typeof r.rtp === 'number' && !r.error ? ' · RTP ' + r.rtp + ' · ' + r.wins + ' wins / ' + r.spins + ' spins' : '') : 'not run by the classifier');
+    if (r && (r.stall || r.error)) line(String(r.stall || r.error).slice(0, 160));
+    if (r && r.at) line('Scanned ' + ago(r.at) + (scan.state && r.engine !== scan.state.engine ? ' · old result (older code)' : ''));
+    else if (r) line('Scanned before results were dated · old result');
+    const zl = document.createElement('div');
+    zl.className = 'copy'; zl.title = 'Click to copy the zip name';
+    zl.textContent = g.zip + (g.size ? ' · ' + (g.size / 1048576).toFixed(1) + ' MB' : '') + (f.code_rom_kb ? ' · code ROM ' + f.code_rom_kb / 1024 + ' MB' : '');
+    zl.onclick = () => navigator.clipboard && navigator.clipboard.writeText(/\.zip$/i.test(g.zip) ? g.zip : g.zip + '.zip');
+    d.appendChild(zl);
+    if (f.symbols !== undefined) line(`${f.symbols} symbols · reels ${(f.strip_lengths || []).join('/') || '–'} · ${f.strip_sets} strip sets · ${f.pay_values} pay values · ${f.combinations} combinations`);
+    if (f.names && f.names.length) {
+      const det = document.createElement('details'), s = document.createElement('summary'), t = document.createElement('div');
+      s.textContent = 'Symbol names'; t.textContent = f.names.join(', ');
+      det.append(s, t); d.appendChild(det);
+    }
+    const acts = document.createElement('div');
+    acts.className = 'acts';
+    const re = document.createElement('button');
+    re.className = 'btn small'; re.type = 'button'; re.textContent = shotOf(g.id) ? 'Retake screenshot' : 'Take screenshot';
+    re.onclick = () => shootGame(g.id);
+    acts.appendChild(re);
+    if (server && server.writable) {
+      const rs = document.createElement('button');
+      rs.className = 'btn small'; rs.type = 'button'; rs.textContent = 'Rescan this game';
+      rs.title = 'Ask the scanner to redo this game\'s result, screenshot and marquee now';
+      rs.onclick = () => requestRescan(g.id);
+      acts.appendChild(rs);
+    }
+    d.appendChild(acts);
+    return d;
+  }
+
+  function render() {
+    if (cycler) cycler.disconnect();
+    for (const b of $('chips').children) {
+      b.setAttribute('aria-pressed', b.dataset.f === filter);
+      b.lastChild.textContent = games.filter(g => matches(g, b.dataset.f)).length;
+    }
+    $('vfilter').setAttribute('aria-pressed', visualOnly);
+    $('vfilter').textContent = 'Visually broken (' + games.filter(g => inLib(g) && VF[g.id]).length + ')';
+    const subs = [...new Set(Object.values(VF).map(v => v.sub).filter(Boolean))].sort();
+    $('vsub').replaceChildren(new Option('All failure types', ''), ...subs.map(x => new Option(x, x)));
+    $('vsub').value = vsub;
+    $('store').textContent = server ? (server.writable ? 'Screenshots are taken and stored on the server.' : 'The server store is read-only: screenshots are taken and kept in this browser.') : 'No server store: screenshots are taken and kept in this browser.';
+
+    // titles compare with numbers as numbers: 5 Dragons, 50 Lions, 100 Lions
+    const cmp = (x, y) => x.localeCompare(y, undefined, { numeric: true, sensitivity: 'base' });
+    const by = {
+      best: (a, b) => RANK[a.group] - RANK[b.group] || cmp(a.title, b.title),
+      az: (a, b) => cmp(a.title, b.title),
+      za: (a, b) => cmp(b.title, a.title),
+      lines: (a, b) => ((b.rs && b.rs.lines) || 0) - ((a.rs && a.rs.lines) || 0) || cmp(a.title, b.title),
+      recent: (a, b) => played(b.id) - played(a.id) || cmp(a.title, b.title),
+    }[sort];
+    const list = games.filter(g => matches(g, filter) && g.title.toLowerCase().includes(q)).sort(by);
+    // "All games" puts the favourites on a shelf of their own above everything else
+    const shelf = filter === 'all' ? list.filter(g => favs.has(g.id)) : [];
+    hidePeek();
+    $('favsec').style.display = shelf.length ? 'block' : 'none';
+    $('favhead').lastChild.textContent = shelf.length;
+    $('favgrid').replaceChildren(...shelf.map(card));
+    $('allhead').hidden = !shelf.length || shelf.length === list.length;
+    $('grid').replaceChildren(...list.filter(g => !shelf.includes(g)).map(card));
+    const any = games.some(inLib);
+    $('empty').style.display = any ? 'none' : 'block';
+    $('count').textContent = any ? (list.length === 1 ? '1 game' : list.length + ' games') : '';
+  }
+
+  // ---- screenshot scanner: each ROM runs in shot-worker.js; the finished frame is saved on the server (or in this browser)
+  let shooting = false, stopShots = false;
+  const shotOne = (id, buf) => new Promise(res => {
+    const w = new Worker('js/shot-worker.js'), t = setTimeout(() => { w.terminate(); res({ error: 'timed out' }); }, 60000);
+    w.onmessage = e => {
+      const m = e.data;
+      if (!m.shot && !m.error) return;
+      clearTimeout(t); w.terminate();
+      if (m.error) return res({ error: m.error });
+      const full = document.createElement('canvas');
+      full.width = 640; full.height = 480;
+      full.getContext('2d').putImageData(new ImageData(m.shot.rgba, 640, 480), 0, 0);
+      const c = document.createElement('canvas');
+      c.width = 480; c.height = 360;
+      c.getContext('2d').drawImage(full, 0, 0, 480, 360);
+      c.toBlob(blob => res({ blob, dataUrl: c.toDataURL('image/jpeg', 0.8) }), 'image/jpeg', 0.82);
+    };
+    w.onerror = () => { clearTimeout(t); w.terminate(); res({ error: 'worker error' }); };
+    w.postMessage({ id, buf }, [buf]);
+  });
+  // several ROMs at once, each in its own worker: half this computer's threads, 2 to 8
+  const SHOT_WORKERS = Math.max(2, Math.min(8, Math.floor((navigator.hardwareConcurrency || 4) / 2)));
+  async function runShots(ids) {
+    if (shooting) { stopShots = true; return; }
+    shooting = true; stopShots = false;
+    $('shots').textContent = 'Stop';
+    const msg = $('dropmsg'), bad = [], queue = ids.slice();
+    let done = 0, saved = 0;
+    const progress = () => { msg.textContent = 'Screenshots: ' + done + ' of ' + ids.length + ' done, ' + Math.min(SHOT_WORKERS, ids.length) + ' at a time'; };
+    const lane = async () => {
+      while (queue.length && !stopShots) {
+        const id = queue.shift();
+        const rec = await RomStore.get(id).catch(() => null);
+        const r = rec ? await shotOne(id, rec.buf.slice(0)) : { error: 'ROM not found' };
+        if (r.error) bad.push(id + ': ' + r.error);
+        else if (await putServerShot(id, r.blob, { at: Math.floor(Date.now() / 1000), w: 480, h: 360 })) saved++;
+        else { LOCAL_SHOTS[id] = r.dataUrl; sput(id, r.dataUrl); }
+        done++; progress();
+        if (done % 4 === 0) render();
+      }
+    };
+    progress();
+    await Promise.all(Array.from({ length: Math.min(SHOT_WORKERS, ids.length) }, lane));
+    shooting = false;
+    $('shots').textContent = 'Scan screenshots';
+    msg.textContent = 'Screenshots done (' + saved + ' saved on the server)' + (bad.length ? '. Failed: ' + bad.join(' · ') : '');
+    render();
+  }
+
+  // Screenshots are taken by the server (tools/shots.js on the host, many ROMs in parallel) whenever it has a writable store;
+  // the browser scan above is the fallback for a page served without the API
+  const serverScans = () => !!(server && server.writable);
+  let serverFollowing = false;
+  async function followServerShots() {
+    let st;
+    try { st = await (await fetch('/api/jobs/shots', { cache: 'no-cache' })).json(); } catch (e) { serverFollowing = false; return; }
+    const msg = $('dropmsg');
+    if (st.running) {
+      serverFollowing = true;
+      msg.textContent = 'Taking screenshots on the server: ' + st.ok + (st.total !== null ? ' of ' + st.total : '') + ' done, ' + st.jobs + ' at a time' + (st.failed.length ? ', ' + st.failed.length + ' failed' : '');
+      $('shots').textContent = 'Scanning on the server…';
+      setTimeout(followServerShots, 2000);
+      return;
+    }
+    $('shots').textContent = 'Scan screenshots';
+    if (serverFollowing || st.finished) {
+      if (st.finished) msg.textContent = 'Server screenshots done: ' + st.ok + ' saved' + (st.failed.length ? '. Failed: ' + st.failed.join(' · ') : '');
+      try { const r = await fetch('/api/library', { cache: 'no-cache' }); if (r.ok) server = await r.json(); } catch (e) {}
+      render();
+    }
+    serverFollowing = false;
+  }
+  async function startServerShots(opts) {
+    if (serverFollowing) { $('dropmsg').textContent = 'A server screenshot scan is already running.'; return; }
+    const r = await fetch('/api/jobs/shots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(opts) }).catch(() => null);
+    const out = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { $('dropmsg').textContent = 'Server scan not started: ' + (out.error || 'no answer from the server'); return; }
+    serverFollowing = true;
+    followServerShots();
+  }
+  const shootGame = id => (serverScans() ? startServerShots({ id, all: true }) : runShots([id]));
+  $('shots').onclick = () => {
+    if (serverScans()) return startServerShots({ all: $('shotall').checked });
+    if (shooting) { stopShots = true; return; }
+    const ids = games.filter(inLib).map(g => g.id).filter(id => $('shotall').checked || !shotOf(id));
+    if (!ids.length) { $('dropmsg').textContent = 'Every game in your library already has a screenshot.'; return; }
+    runShots(ids);
+  };
+
+  // ---- adding ROMs: files, a whole folder (remembered with the File System Access API), or drag and drop anywhere on the page
+  const addmsg = t => { $('addmsg').textContent = t; $('dropmsg').textContent = t; };
+  async function addFiles(list) {
+    const out = [];
+    for (const f of list) {
+      if (!/\.zip$/i.test(f.name)) continue;
+      const id = slug(f.name);
+      try { await RomStore.put(id, f.name, await f.arrayBuffer()); lib.add(id); out.push(f.name + ' added'); }
+      catch (e) { out.push(f.name + ' failed: ' + e.message); }
+    }
+    addmsg(out.length ? out.join(' · ') : 'No .zip files in that selection.');
+    render();
+  }
+  async function scanRoms(files) {
+    const known = new Set(games.map(g => g.id));
+    let added = 0, seen = 0;
+    for (const f of files) {
+      if (!/\.zip$/i.test(f.name)) continue;
+      const id = slug(f.name);
+      if (!known.has(id)) continue;
+      seen++;
+      if (lib.has(id)) continue;
+      addmsg('Reading ' + f.name + '…');
+      try { await RomStore.put(id, f.name, await f.arrayBuffer()); lib.add(id); added++; } catch (e) {}
+    }
+    addmsg('Found ' + seen + ' known game' + (seen === 1 ? '' : 's') + ', ' + added + ' new.');
+    render();
+  }
+  const hdb = () => new Promise((res, rej) => { const r = indexedDB.open('mk6-handles', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const hget = async () => {
+    try { const db = await hdb(); return await new Promise(res => { const q = db.transaction('h').objectStore('h').get('roms'); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }); }
+    catch (e) { return null; }
+  };
+  const hput = async h => { try { const db = await hdb(); db.transaction('h', 'readwrite').objectStore('h').put(h, 'roms'); } catch (e) {} };
+  const dirFiles = async dir => {
+    const out = [];
+    for await (const [name, h] of dir.entries()) if (h.kind === 'file' && /\.zip$/i.test(name)) out.push(await h.getFile());
+    return out;
+  };
+  async function scanHandle(h, ask) {
+    if ((await h.queryPermission({ mode: 'read' })) !== 'granted' && !(ask && (await h.requestPermission({ mode: 'read' })) === 'granted')) return false;
+    await scanRoms(await dirFiles(h));
+    return true;
+  }
+  $('scan').onclick = async () => {
+    if (!window.showDirectoryPicker) return $('dirin').click();
+    try { const h = await showDirectoryPicker({ id: 'mk6-roms', mode: 'read' }); await hput(h); await scanHandle(h, true); }
+    catch (e) { if (e.name !== 'AbortError') addmsg('Folder scan failed: ' + e.message); }
+  };
+  $('dirin').onchange = e => scanRoms([...e.target.files]);
+  $('files').onchange = e => addFiles([...e.target.files]);
+  $('addbtn').onclick = () => $('adddlg').showModal();
+  // a ROMs folder picked before is rescanned on every visit (when the browser still allows it)
+  (async () => {
+    const h = await hget();
+    if (h && h.queryPermission) { try { await scanHandle(h, false); } catch (e) {} }
+  })();
+  let depth = 0;
+  addEventListener('dragenter', e => { e.preventDefault(); depth++; document.body.classList.add('dragging'); });
+  addEventListener('dragover', e => e.preventDefault());
+  addEventListener('dragleave', e => { e.preventDefault(); if (--depth <= 0) { depth = 0; document.body.classList.remove('dragging'); } });
+  addEventListener('drop', e => {
+    e.preventDefault(); depth = 0; document.body.classList.remove('dragging');
+    if (e.dataTransfer && e.dataTransfer.files.length) addFiles([...e.dataTransfer.files]);
+  });
+
+  // ---- the scanner service (tools/scan-loop.sh): rescans results made by older code by itself; "Rescan now" asks it to start at once
+  let scanTimer = 0, wasBusy = false;
+  async function followScan() {
+    clearTimeout(scanTimer);
+    try { Object.assign(scan, await (await fetch('/api/jobs/rescan', { cache: 'no-cache' })).json()); } catch (e) { return; }
+    const st = scan.state, busy = !!(scan.request || (st && st.phase !== 'idle'));
+    const PH = { maps: 'finding maps for new ROMs', classify: 'scanning results', shots: 'taking screenshots and marquees' };
+    $('scanst').textContent = !st ? 'No scanner service.' : scan.request ? 'Rescan asked for, the scanner starts within a minute.'
+      : st.phase !== 'idle' ? 'Scanner: ' + (PH[st.phase] || st.phase) + (st.request && st.request !== '*' ? ' (' + st.request + ')' : '') + ', since ' + ago(st.at) + '.'
+      : 'Scanner idle; code ' + st.engine + ' live since ' + ago(st.since) + '.';
+    $('rescan').disabled = !(server && server.writable) || busy;
+    // a scan just finished: show its results
+    if (wasBusy && !busy) {
+      await loadStatus(); applyStatus();
+      try { const r = await fetch('/api/library', { cache: 'no-cache' }); if (r.ok) server = await r.json(); } catch (e) {}
+      render();
+    }
+    wasBusy = busy;
+    scanTimer = setTimeout(followScan, busy ? 10000 : 60000);
+  }
+  async function requestRescan(id) {
+    const r = await fetch('/api/jobs/rescan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(id ? { id } : {}) }).catch(() => null);
+    const out = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { $('dropmsg').textContent = 'Rescan not asked for: ' + (out.error || 'no answer from the server'); return; }
+    followScan();
+  }
+  $('rescan').onclick = () => requestRescan(null);
+  await followScan();
+
+  render();
+  // pick up a server screenshot scan that is already running (started from another browser or before a reload)
+  if (serverScans()) followServerShots();
+})();
+</script>
+</body>
+</html>

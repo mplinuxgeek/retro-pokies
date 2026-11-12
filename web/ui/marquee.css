@@ -1,0 +1,53 @@
+/* The title banner (marquee) and the CREDIT / BET / WIN LCD shared by play.html and games.html. The page sets --radius and --edge.
+   js/uiprefs.js adds the classes nobanner (banner off: a slim strip that keeps the LCD and buttons), noart (name only, no attract art),
+   notitle (art only) to #marquee, and data-theme on #lcd (green is the default; amber, blue, white, red). */
+  /* game title marquee: the ROM's own attract art (IMG_ATTRACT) dimmed behind the name in Bungee (SIL OFL, fonts/OFL-Bungee.txt), */
+  @font-face { font-family:'Bungee'; src:url('../fonts/Bungee-Regular-latin.woff2') format('woff2'); font-display:swap; }
+  #marquee, #bootmq { position:relative; max-width:800px; margin:0 auto 12px; display:flex; flex-direction:column; justify-content:center; overflow:hidden; border-radius:var(--radius);
+    background:radial-gradient(ellipse at 50% 0%, #5a2a0c 0%, #2a1306 55%, #120803 100%); box-shadow:0 0 0 3px var(--edge), 0 8px 24px #000; }
+  #marquee .art, #bootmq .art { position:absolute; inset:0; background-size:cover; background-position:center 35%; filter:brightness(.42) saturate(1.1) blur(1.5px); transform:scale(1.05); }
+  /* backlit panel: a warm hot spot behind the title, uneven blotches (low-frequency noise) like a lamp behind a printed sheet, darker edges */
+  #marquee .glow, #bootmq .glow { position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; animation:backlight 4.6s ease-in-out infinite;
+    background:radial-gradient(ellipse 55% 75% at 50% 42%, rgba(255,196,110,.30), transparent 72%),
+      radial-gradient(ellipse 26% 50% at 20% 58%, rgba(255,160,70,.15), transparent 70%), radial-gradient(ellipse 24% 46% at 80% 38%, rgba(255,184,96,.13), transparent 70%),
+      url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.011 0.02' numOctaves='3' seed='7'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 0.72  0 0 0 0 0.36  0 0 0 0.6 -0.16'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>") center / cover; }
+  #marquee .vig, #bootmq .vig { position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 34px rgba(0,0,0,.62), inset 0 0 8px rgba(0,0,0,.5); border-radius:inherit; }
+  @keyframes backlight { 0%, 100% { opacity:1; } 48% { opacity:.92; } 52% { opacity:.97; } }
+  #marquee.tall .glow { opacity:.45; animation:none; }
+  /* title centred in the space above, the LCD on the bottom edge */
+  #marquee .mqbody, #bootmq .mqbody { position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:22px 16px 5px; }   /* shortcuts close to the bottom edge */
+  #marquee .mqbody h1, #bootmq .mqbody h1 { margin:auto 0; }
+  #marquee h1, #bootmq h1 { position:relative; z-index:1; margin:0; text-align:center; font:400 clamp(22px, 4.6vw, 40px)/1.05 'Bungee', Impact, 'Arial Black', sans-serif;
+    letter-spacing:.03em; text-transform:uppercase; color:#ffe27a; background:linear-gradient(180deg, #fffbe0 0%, #ffe27a 42%, #f0a030 58%, #ffcf5a 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 2px 0 #5a1d00) drop-shadow(0 0 10px rgba(0,0,0,.85)); }
+  /* tall banner (spare window height): the art is the show, its logo in full; the name moves to a ribbon along the bottom */
+  #marquee.tall .art { filter:none; transform:none; }
+  #marquee.tall { justify-content:flex-end; }
+  #marquee.tall .mqbody { flex:0 0 auto; padding-top:34px; background:linear-gradient(180deg, transparent, rgba(8,4,1,.78) 45%); }
+  #marquee.tall h1 { font-size:clamp(18px, 2.6vw, 26px); filter:drop-shadow(0 2px 0 #5a1d00) drop-shadow(0 0 6px #000) drop-shadow(0 0 14px #000); }
+  @media (prefers-reduced-motion:reduce) { #marquee .glow { animation:none; } }
+  @media (max-width:600px) { #marquee .mqbody { padding:10px 8px 8px; } }
+  /* credit / bet / win: a backlit character LCD (HD44780 style): yellow-green backlight, a faint 3 px pixel grid, dark segments with the slight
+     drop shadow they cast on the backlight; Share Tech Mono (SIL OFL, fonts/OFL-ShareTechMono.txt) keeps the figures crisp */
+  @font-face { font-family:'Share Tech Mono'; src:url('../fonts/ShareTechMono-Regular-latin.woff2') format('woff2'); font-display:swap; }
+  #lcd { --lcd0:#dcec74; --lcd1:#bfd34c; --lcd2:#98af30; --ink:#1b2606; --grid:rgba(20,34,0,.07); --glow:rgba(40,60,0,.5); --shade:rgba(30,45,0,.22);
+    display:grid; grid-template-columns:repeat(3, minmax(0, auto)); gap:0 clamp(14px, 3.4vw, 34px); padding:4.5px clamp(12px, 2.6vw, 22px) 3.5px; border-radius:6px;
+    background:repeating-linear-gradient(0deg, var(--grid) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, var(--grid) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% 35%, var(--lcd0) 0%, var(--lcd1) 55%, var(--lcd2) 100%);
+    border:2px solid #15170c; box-shadow:0 0 0 3px #3a372a, 0 0 0 4px #15170c, inset 0 0 14px var(--glow), inset 0 2px 4px rgba(0,0,0,.35), 0 6px 14px #000a; }
+  #lcd .cell { display:flex; flex-direction:column; align-items:center; min-width:0; color:var(--ink); font-family:'Share Tech Mono', ui-monospace, Consolas, monospace;
+    text-shadow:1px 1px 0 var(--shade); }
+  #lcd .cell span { font-size:12.5px; letter-spacing:.16em; opacity:.8; }
+  /* fixed character slots, as on a character LCD: the panel never changes width with the figures ($1000000.00 is the most the game shows) */
+  #lcd .cell b { display:block; width:11ch; text-align:center; overflow:hidden; font-weight:400; font-size:clamp(17px, 3vw, 26px); line-height:1.1; letter-spacing:.04em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  #lcd[data-theme="amber"] { --lcd0:#ffd27a; --lcd1:#e8a93a; --lcd2:#b87a1c; --ink:#2a1600; --grid:rgba(60,30,0,.08); --glow:rgba(90,50,0,.5); --shade:rgba(80,40,0,.22); }
+  #lcd[data-theme="blue"] { --lcd0:#8fd8ff; --lcd1:#4aa8e6; --lcd2:#2a6fb0; --ink:#06192e; --grid:rgba(0,20,50,.09); --glow:rgba(0,30,80,.5); --shade:rgba(0,30,70,.22); }
+  #lcd[data-theme="white"] { --lcd0:#f4f4ec; --lcd1:#d2d4c6; --lcd2:#a6a89a; --ink:#16180f; --grid:rgba(0,0,0,.07); --glow:rgba(0,0,0,.35); --shade:rgba(0,0,0,.18); }
+  #lcd[data-theme="red"] { --lcd0:#ff9a86; --lcd1:#e2543c; --lcd2:#a8321f; --ink:#2a0804; --grid:rgba(60,0,0,.09); --glow:rgba(90,0,0,.5); --shade:rgba(80,0,0,.22); }
+  #lcd[hidden] { display:none; }
+  /* display settings (js/uiprefs.js): banner off keeps the strip for the LCD and the buttons in #topbar; name only drops the art; art only drops the name */
+  #marquee.nobanner .art, #marquee.nobanner .glow, #marquee.noart .art, #marquee.noart .glow { display:none; }
+  #marquee.nobanner h1, #marquee.notitle h1 { display:none; }
+  #marquee.nobanner { background:linear-gradient(180deg, #221208, #120803); }
+  #marquee.nobanner .mqbody { padding-top:40px; }   /* clear of the buttons in #topbar */
+  #marquee.nobanner.nolcd .mqbody { padding-top:36px; }

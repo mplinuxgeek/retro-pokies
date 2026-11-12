@@ -1,0 +1,1270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retro Pokies Player</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="ui/marquee.css">
+<style>
+  :root { color-scheme: dark; --gold:#ffe27a; --panel:#1a0f06; --edge:#1c1209;
+    --bg:#0b0704; --card:#1b120a; --card2:#24180d; --line:#3b2814; --line2:#5c3d1c; --text:#f4e7c8; --muted:#b9a37a; --faint:#8a7552;
+    /* a lit panel key: the lamp behind the frosted lens, warm white to gold */
+    --lamp:radial-gradient(ellipse at 50% 40%, #ffffff 0%, #fff7d6 36%, #ffe48c 70%, #f5c443 100%); --lamp-ink:#3a2a06; --lamp-edge:#ffd862;
+    --radius:6px;   /* one corner radius for the banner, panel and cards (the game screen is square) */
+    --lamp-glow:0 0 0 1px #fff4, 0 0 10px 2px #ffd862a0, 0 0 26px 6px #ffbf3a44, inset 0 2px 0 #fffc; }   /* a top bevel highlight, not an inner glow: the key stays raised, lit or not (momentary keys, not latching) */
+  html,body { margin:0; color:var(--text); font:14px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif; }
+  html { background:var(--bg); } html:fullscreen { overflow:hidden; }   /* full screen: everything is fitted to the window (fitMarquee), so no scroll bars; the banknote animation below the panel would otherwise add some */ body { min-height:100vh; background:radial-gradient(1200px 520px at 50% -140px, #3a220c 0%, rgba(58,34,12,0) 70%), var(--bg); }
+  #app { max-width:960px; margin:0 auto; padding:12px 16px 24px; }
+  #stage { position:relative; width:100%; max-width:800px; margin:0 auto; aspect-ratio:640/480; background:#000; box-shadow:0 0 0 3px var(--edge),0 8px 30px #000; }
+  canvas { width:100%; height:100%; display:block; image-rendering:auto; }
+  #util, #stats, #devtools .devrow { box-sizing:border-box; }
+  #panel { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center; margin:14px auto 0; max-width:800px; }
+  .grp { display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line); border-radius:5px; padding:4px 6px 4px 13px; color:var(--muted); font-size:13px; }
+  .grp select { background:var(--bg); border-color:var(--line2); border-radius:5px; padding:3px 10px; }
+  .grp b { min-width:2.4em; text-align:center; color:var(--gold); font-variant-numeric:tabular-nums; }
+  #sound { padding:2px 8px 2px 2px; gap:2px; }
+  #sound #mute { padding:5px 6px; display:inline-flex; background:transparent; border-color:transparent; color:var(--text); touch-action:manipulation; }
+  #sound #mute:hover { background:var(--card2); }
+  #sound svg path { fill:none; stroke:currentColor; stroke-width:1.8; stroke-linejoin:round; stroke-linecap:round; } #sound svg .spk { fill:currentColor; } #sound svg .x { display:none; }
+  #sound #mute[aria-pressed="true"] { color:var(--muted); } #sound #mute[aria-pressed="true"] .wav { display:none; } #sound #mute[aria-pressed="true"] .x { display:block; }
+  #vol { -webkit-appearance:none; appearance:none; width:80px; height:24px; margin:0; background:transparent; cursor:pointer; touch-action:pan-y; }
+  #vol::-webkit-slider-runnable-track { height:4px; border-radius:2px; background:var(--line2); }
+  #vol::-moz-range-track { height:4px; border-radius:2px; background:var(--line2); }
+  #vol::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; margin-top:-5px; border-radius:50%; background:var(--text); border:1px solid var(--line); }
+  #vol::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--text); border:1px solid var(--line); }
+  #vol:focus-visible { outline:2px solid var(--gold); outline-offset:2px; border-radius:3px; }
+  button, select { font:inherit; color:var(--text); background:var(--card2); border:1px solid var(--line2); border-radius:5px; padding:6px 14px; cursor:pointer; transition:background .15s, border-color .15s; }
+  select { border-radius:4px; padding:5px 8px; }
+  button:not(.cb):not(.note):hover:not(:disabled) { background:#33220f; border-color:#7a5326; }   /* page buttons only: the panel keys have their own */
+  button:disabled { opacity:.45; cursor:default; }
+  #unused-spin { background:#1f7a2e; border-color:#58c46a; font-weight:700; padding:10px 28px; font-size:16px; }
+  #cab { box-sizing:border-box; width:100%; display:grid; grid-template-columns:1fr auto; gap:10px 22px; align-items:end; max-width:800px; margin:14px auto 0; padding:7px 8px; border:2px solid #7a7d82; border-radius:var(--radius);
+    /* brushed stainless: texture generated from fine horizontal-smeared noise + soft vertical reflection bands (assets/steel.jpg) */
+    background:#8d8f93 url(ui/steel.jpg) center/cover no-repeat;
+    box-shadow:inset 0 1px 0 #fff9, inset 0 -2px 4px #0006, 0 6px 16px #000a; }
+  #cab .row { display:flex; gap:10px; margin:0; }   /* vertical spacing comes from the grid gap only, so rows line up with the AUTO/SPIN stack */
+  #cab .row .cb { flex:1; width:auto; height:68px; }
+  #cab #betrow { grid-column:1; } #cab #playrow { grid-column:1; margin:0; }   /* BET on top, PLAY below; margin 0 → bottom row lines up with GAMBLE/AUTO/SPIN/NOTE */ #spinwrap { grid-column:2; grid-row:1 / span 2; display:flex; gap:10px; align-items:flex-end; }
+  .cb { position:relative; font:800 13px/1.05 "Arial Narrow",Arial,sans-serif; letter-spacing:.02em; text-transform:uppercase; text-align:center; width:76px; height:60px; padding:4px 2px; border-radius:7px; border:3px solid #5a5a5e; background:linear-gradient(#8d8d92,#6d6d72); color:#3a3a3a; cursor:pointer; box-shadow:0 4px 0 #1b1b1d, 0 6px 8px #000; }
+  /* gamble keys as printed on the real lenses: the suit is a big faded shape behind BET n; RED / BLACK sit under a rule below PLAY */
+  /* a labelled play key (Outback Jack: 20 lines + the feature bet): a gold lens, the name on two lines */
+  .cb.play.special { background:linear-gradient(#5aa0e0,#2a6cb0); border-color:#1f5a94; color:#06284a; text-shadow:none; }   /* blue lens like GAMBLE's purple one: lit, it glows blue (rule at the end of the panel keys) */
+  .cb.play.special big { font-size:.82em; line-height:1; letter-spacing:.01em; }
+  .cb.play, .cb.bet { background:linear-gradient(#d8d8dc,#b4b4ba); color:#2c2c30; border-color:#6a6a70; }   /* frosted white lens like the real keys */
+  .cb.bet { isolation:isolate; } .cb.bet::before { content:''; position:absolute; inset:2px 6% 2px; z-index:-1; background:center/contain no-repeat; opacity:.9; }
+  .cb.bet.s0::before { background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%23c637c9' d='M50 92C12 64 2 38 20 20C34 8 47 16 50 30C53 16 66 8 80 20C98 38 88 64 50 92Z'/></svg>"); } .cb.bet.s1::before { background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%23c637c9' d='M50 3L92 50L50 97L8 50Z'/></svg>"); }
+  .cb.bet.s2::before { background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%2373737a' d='M50 6a19 19 0 1 1-11 34a19 19 0 1 0 6 33L40 96H60L55 73a19 19 0 1 0 6-33A19 19 0 0 1 50 6Z'/></svg>"); } .cb.bet.s3::before { background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%2373737a' d='M50 4C72 28 94 44 84 66C77 80 58 78 53 66L59 96H41L47 66C42 78 23 80 16 66C6 44 28 28 50 4Z'/></svg>"); }
+  .pip { display:block; font:800 9px/1 Arial,sans-serif; font-style:normal; letter-spacing:.08em; border-top:1px solid #5a5a5a; margin:2px 4px 0; padding-top:1px; }
+  .pip.red { color:#c0202a; } .pip.blk { color:#161616; }
+  .cb small { display:block; font-size:9px; font-weight:700; opacity:.8; }
+  .cb big { display:block; font-size:19px; }
+  /* lit buttons = incandescent globes behind a frosted lens: warm radial hot-spot, soft orange halo, faint filament flicker */
+  .cb.on, .cb.bet.on { background:var(--lamp); color:var(--lamp-ink); border-color:var(--lamp-edge);
+    text-shadow:0 1px 0 #fff8; box-shadow:var(--lamp-glow), 0 4px 0 #1b1b1d; animation:globe 3.2s ease-in-out infinite; }
+  @keyframes globe { 0%,100% { filter:brightness(1); } 45% { filter:brightness(.94); } 70% { filter:brightness(1.05); } }
+  @media (prefers-reduced-motion:reduce) { .cb.on { animation:none; } }
+  /* panel lamps the game flashes (gos_control 13, state 2): a feature choice (Grizzly pick) is made with these buttons */
+  .cb.flash { animation:lampflash .76s steps(2,jump-none) infinite; }
+  @keyframes lampflash { 0% { box-shadow:0 4px 0 #1b1b1d, 0 6px 8px #000; } 100% { box-shadow:0 4px 0 #1b1b1d, 0 0 14px 4px #ffd862; border-color:#ffd862; } }
+  @media (prefers-reduced-motion:reduce) { .cb.flash { animation:none; box-shadow:0 0 0 3px #ffd862; } }
+  .cb.blank { background:linear-gradient(#ffb547,#d9780f); color:#4a2300; border-color:#a85a08; font-size:22px; height:68px; width:84px; }   /* AUTO: an amber lens (no black keys; a coloured key glows its own colour) */
+  .stack { gap:10px; }
+  /* GAMBLE and AUTO on top, a slot for game-specific keys (Outback Jack's feature bet) beside SPIN */
+  .stack { display:grid; grid-template-columns:auto auto; } .stack .toprow, .stack #slot { display:contents; } .stack .spin { grid-column:2; grid-row:2; }
+  .stack #slot .cb { grid-column:1; grid-row:2; width:84px; height:68px; }
+  /* ROM prompt keys with no line / bet button: FEATURE (key 7) always, other keys (Game Rules 6, Collect 8 ...) only while a prompt waits on them */
+  .stack #slot #fk { grid-column:1; grid-row:2; display:flex; flex-wrap:wrap; gap:6px; } .stack.hasslot #slot #fk { grid-row:3; } #fk .cb { grid-column:auto; grid-row:auto; }
+  /* two or more keys (a feature choice: Game Rules, Collect, picks): a row of their own under SPIN, across both columns, wrapping; width:0 + min-width:100% so the keys never widen the panel */
+  .stack:has(#fk .cb:nth-child(2)) #slot #fk { grid-column:1 / -1; grid-row:3; width:0; min-width:100%; } .stack:has(#fk .cb:nth-child(2)) #fk .cb { flex:1 1 70px; width:auto; } .stack:not(.hasslot):has(#fk .cb:nth-child(2)) .spin { grid-column:1 / -1; }
+  /* a slot key and one prompt key (5 Dragons: EXTRA and FEATURE) would make three rows against the two of line and bet keys: three columns instead,
+     slot key, GAMBLE and AUTO on top, the prompt key and a double-width SPIN below (as on phones) */
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) { grid-template-columns:auto auto auto; }
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) #slot > .cb { grid-column:1; grid-row:1; }
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) #gamble { grid-column:2; grid-row:1; }
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) #auto { grid-column:3; grid-row:1; }
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) #slot #fk { grid-column:1; grid-row:2; }
+  .stack.hasslot:has(#fk .cb):not(:has(#fk .cb:nth-child(2))) .spin { grid-column:2 / span 2; grid-row:2; width:auto; }
+  .cb.fkey { background:linear-gradient(#d8d8dc,#b4b4ba); color:#2c2c30; border-color:#6a6a70; font-size:13px; line-height:1.15; padding:2px; }   /* clear lens like the line and bet keys: lit, the yellow lamp */
+  .cb.fkey:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:var(--lamp); color:var(--lamp-ink); border-color:var(--lamp-edge); text-shadow:0 1px 0 #fff8; box-shadow:var(--lamp-glow), 0 4px 0 #1b1b1d; }
+  .cb.fkey:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]):active:not(:disabled) { box-shadow:var(--lamp-glow), 0 2px 0 #1b1b1d; }
+  .cb.gamble[hidden], .cb.gamble.nogamble { visibility:hidden; pointer-events:none; }   /* games without a gamble keep the space, so the panel does not jump */
+  .cb.fkey[hidden] { display:none; }
+  /* autoplay on: lamp behind the lens glows green */
+  /* AUTO glows the green of its lens, steady like a cabinet button lamp */
+  .cb.blank.lit { background:radial-gradient(ellipse at 50% 42%, #fffaf0 0%, #ffd9a0 36%, #ffa733 74%, #e07a10 100%); color:#4a2300; border-color:#ffb04a; text-shadow:0 0 3px #fff8; box-shadow:0 0 6px 1px #ffb04acc, 0 0 22px 6px #ff961f77, inset 0 0 12px #fff6, 0 4px 0 #1b1b1d; }
+  .cb.gamble { background:linear-gradient(#a45ad6,#7a2fa8); color:#2b0a40; border-color:#5b2380; height:68px; width:84px; font-size:14.5px; }
+  /* ROM panel lamps (gos_control 13, key state in data-lamp): 1 steady, 2 fast flash, 3 slow flash. The page's lamp clock (data-ff / data-fs on <html>, lampTick)
+     runs the cabinet's rates: fast on 430 ms off 330 ms, slow on 760 off 760, every lamp in phase */
+  .cb.play:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:var(--lamp); color:var(--lamp-ink); border-color:var(--lamp-edge); text-shadow:0 1px 0 #fff8; box-shadow:var(--lamp-glow), 0 4px 0 #1b1b1d; }
+  .cb.bet:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:var(--lamp); color:var(--lamp-ink); border-color:var(--lamp-edge); text-shadow:0 1px 0 #fff8; box-shadow:var(--lamp-glow), 0 4px 0 #1b1b1d; }
+  .cb.bet.sel { background:radial-gradient(ellipse at 50% 42%, #f4fff0 0%, #b8f5a8 36%, #4fd85a 74%, #2ea83a 100%); color:#0d4a14; border-color:#58c46a; box-shadow:0 0 6px 1px #6dff7acc, 0 0 22px 6px #3fd04f55, 0 4px 0 #1b1b1d; animation:none; }   /* the chosen bet: its ROM lamp is off, the page tints it green, steady */
+  /* host mark: the line key SPIN plays flashes green with the other line keys */
+  .cb.play.sel:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:radial-gradient(ellipse at 50% 42%, #f4fff0 0%, #b8f5a8 36%, #4fd85a 74%, #2ea83a 100%); color:#0d4a14; border-color:#58c46a; box-shadow:0 0 6px 1px #6dff7acc, 0 0 22px 6px #3fd04f55, 0 4px 0 #1b1b1d; }
+  .cb.selspin, .cb.bet.on.selspin { animation:none;  background:radial-gradient(ellipse at 50% 42%, #f4fff0 0%, #b8f5a8 36%, #4fd85a 74%, #2ea83a 100%); color:#0d4a14; border-color:#58c46a; box-shadow:0 0 6px 1px #6dff7acc, 0 0 22px 6px #3fd04f55, 0 4px 0 #1b1b1d; }   /* the chosen line and bet keys stay green while a game runs (a design choice; the ROM darkens them) */
+  .cb.spin:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:var(--lamp); color:var(--lamp-ink); border-color:var(--lamp-edge); box-shadow:var(--lamp-glow), 0 4px 0 #1b1b1d; }
+  .cb.gamble:is([data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:radial-gradient(ellipse at 50% 42%,#f5e5ff 0%,#d99eff 40%,#b85cfa 80%,#8a24d6 100%); color:#25003b; border-color:#d484ff; box-shadow:0 0 6px 1px #d484ffcc, 0 0 22px 6px #a63bff77, inset 0 0 12px #fff6, 0 4px 0 #1b1b1d; }
+  .cb.spin { background:linear-gradient(#a8a8ad,#7d7d82); font-size:26px; color:#444; height:68px; width:84px; } .cb.spin:hover:not(:disabled) { background:linear-gradient(#c8c8cd,#9d9da2); }
+  .cb.spin.collect { font-size:13.5px; }
+  /* one-word small labels (FEATURE, GAMBLE, COLLECT) sit optically high: their line box keeps room for descenders the capitals never use, so they go .1em lower */
+  #cab .cb.fkey, #cab .cb.gamble, #cab .cb.spin.collect { padding-top:calc(var(--pt, 4px) + .1em) !important; padding-bottom:calc(var(--pb, 4px) - .1em) !important; } .cb.fkey { --pt:2px; --pb:2px; }
+  .cb:disabled, .note:disabled { opacity:1; cursor:default; }   /* look unchanged when inactive; they just ignore presses */ 
+  /* panel keys: a touch brighter under the pointer; pressed, the key sinks onto its base (shorter shadow) and dims a little */
+  .cb:hover:not(:disabled) { filter:brightness(1.05); }
+  .cb:active:not(:disabled) { transform:translateY(2px); filter:brightness(.94); box-shadow:0 2px 0 #1b1b1d, 0 3px 5px #000; }
+  .cb.bet.sel:active:not(:disabled), .cb.selspin:active:not(:disabled) { box-shadow:0 0 6px 1px #6dff7acc, 0 0 22px 6px #3fd04f55, 0 2px 0 #1b1b1d; }   /* a pressed green key keeps its glow */
+  .cb.on:active:not(:disabled) { box-shadow:var(--lamp-glow), 0 2px 0 #1b1b1d; } .cb.blank.lit:active:not(:disabled) { box-shadow:0 0 6px 1px #ffb04acc, 0 0 22px 6px #ff961f77, inset 0 0 12px #fff6, 0 2px 0 #1b1b1d; }
+  /* a blue play key (EXTRA, Outback Jack's feature bet) glows blue whenever another key would light: lamp on or flashing, chosen, or playing. Last, so the yellow lamp and the green chosen marks above do not win */
+  .cb.play.special:is(.on, .sel, .selspin, [data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]) { background:radial-gradient(ellipse at 50% 42%, #f0faff 0%, #a8dcff 36%, #3fa0f0 74%, #1f78d0 100%); color:#06284a; border-color:#58a8e8; text-shadow:0 0 3px #fff8; box-shadow:0 0 6px 1px #6db8ffcc, 0 0 22px 6px #2882e077, inset 0 0 12px #fff6, 0 4px 0 #1b1b1d; animation:none; }
+  .cb.play.special:is(.on, .sel, .selspin, [data-lamp="1"], html[data-ff="1"] [data-lamp="2"], html[data-fs="1"] [data-lamp="3"]):active:not(:disabled) { box-shadow:0 0 6px 1px #6db8ffcc, 0 0 22px 6px #2882e077, inset 0 0 12px #fff6, 0 2px 0 #1b1b1d; }
+  /* banknote acceptor: full-height unit (spans both button rows) with a lit slot, chevrons and the note value */
+  .note { all:unset; box-sizing:border-box; cursor:pointer; position:relative; width:104px; height:146px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:7px; padding:9px 0 8px;
+    border-radius:9px; border:3px solid #34353a; background:linear-gradient(#27282b,#1c1d20); box-shadow:inset 0 1px 0 #ffffff14, inset 0 -3px 6px #0005, 0 4px 0 #0a0a0b, 0 6px 8px #000; }   /* matte black plastic: flat, no gloss */
+  .note .led { width:60px; height:5px; border-radius:3px; background:#1d5a2c; box-shadow:0 0 6px 1px #29d85a88; animation:glow 2.4s ease-in-out infinite; }
+  .note .bezel { position:relative; z-index:2; width:84px; height:34px; border-radius:6px; background:linear-gradient(#030304,#1a1a1e); border:2px solid #5d5f66; box-shadow:inset 0 3px 8px #000, 0 1px 0 #ffffff25; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .note .slot { width:68px; height:7px; border-radius:4px; background:#000; box-shadow:0 0 0 1px #000, 0 0 9px 2px #29d85a88; animation:glow 2.4s ease-in-out infinite; }
+  /* polymer note, Australian proportions (about 2.4 : 1), fed short edge first so it runs lengthwise up the unit; clipped at the slot so it vanishes into it */
+  /* polymer note, Australian & US proportions (about 2.4 : 1), fed short edge first so it runs lengthwise up the unit; clipped at the slot so it vanishes into it */
+  .note .bwrap { position:absolute; left:0; right:0; top:44px; height:146px; overflow:hidden; z-index:3; pointer-events:none; }
+  .note .bill { position:absolute; left:50%; margin-left:-31px; width:62px; height:150px; top:134px; border-radius:3px; opacity:0;
+    box-shadow:0 3px 8px #000c, inset 0 0 0 1px #ffffff40;
+    overflow:hidden; }
+
+  /* AUD Bill Design (Polymer Next Generation Banknotes) */
+  /* Note feeds lengthwise (short edge first, 62px wide x 150px tall).
+     The clear transparent window runs across the short dimension, so it is a HORIZONTAL band across the feed direction! */
+  .note[data-currency="AUD"] .bill, .note:not([data-currency]) .bill {
+    background:
+      linear-gradient(180deg, var(--nb1,#146430) 0%, var(--nb2,#329e50) 24%, transparent 24%, transparent 38%, var(--nb2,#329e50) 38%, var(--nb1,#146430) 100%),
+      radial-gradient(ellipse at 50% 80%, #ffffff30 0%, transparent 60%),
+      repeating-radial-gradient(circle at 50% 80%, #0000 0, #0000 3px, #ffffff15 3px, #ffffff15 4px),
+      repeating-linear-gradient(45deg, #0000 0 3px, #00000010 3px 6px);
+  }
+  /* Horizontal clear polymer window across the bill */
+  .note[data-currency="AUD"] .bill .strip, .note:not([data-currency]) .bill .strip {
+    position:absolute; left:0; right:0; top:40px; height:20px; width:auto;
+    background:linear-gradient(180deg, #ffffff20 0%, #ffffff75 35%, #ffffff90 50%, #ffffff75 65%, #ffffff20 100%);
+    box-shadow:inset 0 0 2px #00000030; }
+  /* Holographic patch inside the horizontal clear window */
+  .note[data-currency="AUD"] .bill .holo, .note:not([data-currency]) .bill .holo {
+    position:absolute; left:50%; margin-left:-11px; top:42px; width:22px; height:16px; border-radius:5px;
+    background:linear-gradient(135deg, #ff0077dd, #00ffccdd 35%, #ffee00dd 70%, #8800ffdd 100%);
+    box-shadow:0 0 5px #ffffffaa; animation:globe 2.5s ease-in-out infinite; }
+  /* Portrait watermark / vignette on lower half */
+  .note[data-currency="AUD"] .bill .port, .note:not([data-currency]) .bill .port {
+    position:absolute; left:50%; margin-left:-16px; top:70px; width:32px; height:42px; border-radius:50% 50% 45% 45%;
+    background:radial-gradient(ellipse at 50% 40%, #ffffff50 0%, #00000030 80%, transparent 100%);
+    border:1px dashed #ffffff40; }
+  /* Large bold numerals at the leading edge right */
+  .note[data-currency="AUD"] .bill .val, .note:not([data-currency]) .bill .val {
+    position:absolute; right:3px; top:13px; width:32px; text-align:right;
+    font:900 16px/1 "Arial Black",Arial,sans-serif; color:var(--ntxt,#fff);
+    text-shadow:0 1px 2px #00000088, 0 0 1px #000; letter-spacing:-0.03em; }
+  /* AUSTRALIA microprint text along leading top edge */
+  .note[data-currency="AUD"] .bill .nat, .note:not([data-currency]) .bill .nat {
+    position:absolute; left:4px; top:4px; transform:none;
+    font:800 5px/1 Arial,sans-serif; letter-spacing:0.12em; color:#ffffffee; text-shadow:0 0.5px 1px #000c; }
+  /* Corner small clear circular window */
+  .note[data-currency="AUD"] .bill::after, .note:not([data-currency]) .bill::after {
+    content:''; position:absolute; right:6px; bottom:8px; width:13px; height:13px; border-radius:50%;
+    background:radial-gradient(circle, #ffffffcc 0%, #ffffff30 70%, transparent 100%); border:1px solid #ffffff90; }
+
+  /* USD Bill Design (Federal Reserve Note Series) */
+  .note[data-currency="USD"] .bill {
+    background:
+      linear-gradient(180deg, #1b382b 0%, #254434 4px, transparent 4px, transparent calc(100% - 4px), #254434 calc(100% - 4px), #1b382b 100%),
+      linear-gradient(90deg, #1b382b 0%, #254434 4px, transparent 4px, transparent calc(100% - 4px), #254434 calc(100% - 4px), #1b382b 100%),
+      radial-gradient(ellipse at 50% 50%, var(--nb2,#e3ded2) 0%, var(--nb1,#d1cbbe) 100%);
+    border: 1px solid #1a3828;
+    box-shadow: 0 3px 8px #000c, inset 0 0 0 2px #1e3d2c, inset 0 0 0 3px #cfc9bc;
+  }
+  /* US 3D Security Ribbon on $100 */
+  .note[data-currency="USD"][data-note="10000"] .bill .strip {
+    display:block; position:absolute; left:24px; width:7px; top:0; bottom:0;
+    background:linear-gradient(90deg, #1b5b99, #3182ce 50%, #1b5b99);
+    box-shadow:inset 0 0 1px #000a, 0 0 2px #0006;
+  }
+  .note[data-currency="USD"]:not([data-note="10000"]) .bill .strip { display:none; }
+  .note[data-currency="USD"] .bill .holo { display:none; }
+  /* US Oval Portrait Vignette */
+  .note[data-currency="USD"] .bill .port {
+    display:block; position:absolute; left:50%; margin-left:-18px; top:36px; width:36px; height:46px;
+    border-radius:50%; background:radial-gradient(ellipse at 50% 45%, #ffffff60 0%, #30383040 70%, #15221980 100%);
+    border:2px double #1a3828; box-shadow:0 0 0 1px #8a9688;
+  }
+  /* US Denomination Numerals */
+  .note[data-currency="USD"] .bill .val {
+    position:absolute; right:3px; top:6px; width:26px; text-align:right;
+    font:900 15px/1 "Times New Roman",Georgia,serif; color:var(--ntxt,#153624);
+    text-shadow:0 1px 0 #ffffffaa; letter-spacing:-0.02em;
+  }
+  /* US Header */
+  .note[data-currency="USD"] .bill .nat {
+    position:absolute; left:50%; top:6px; transform:translateX(-50%); transform-origin:center;
+    font:900 4.5px/1 "Times New Roman",Georgia,serif; letter-spacing:0.04em; color:#153624; white-space:nowrap;
+    text-shadow:none;
+  }
+  .note[data-currency="USD"] .bill::after {
+    content:'$'; position:absolute; left:4px; bottom:5px;
+    font:900 13px/1 "Times New Roman",Georgia,serif; color:#153624;
+    background:none; border:none; width:auto; height:auto; border-radius:0;
+  }
+
+  /* Australian Next Generation Banknotes colorways */
+  .note[data-currency="AUD"][data-note="500"], .note:not([data-currency])[data-note="500"] { --nb1:#913379; --nb2:#c45da3; --ntxt:#fff; }   /* $5 Mauve/Purple */
+  .note[data-currency="AUD"][data-note="1000"], .note:not([data-currency])[data-note="1000"] { --nb1:#175296; --nb2:#3b82ce; --ntxt:#fff; }  /* $10 Aqua/Cyan Blue */
+  .note[data-currency="AUD"][data-note="2000"], .note:not([data-currency])[data-note="2000"] { --nb1:#b83514; --nb2:#e06028; --ntxt:#fff; }  /* $20 Red/Coral */
+  .note[data-currency="AUD"][data-note="5000"], .note:not([data-currency])[data-note="5000"] { --nb1:#c0850a; --nb2:#eeb625; --ntxt:#3d2400; }  /* $50 Gold/Amber */
+  .note[data-currency="AUD"][data-note="10000"], .note:not([data-currency])[data-note="10000"] { --nb1:#146430; --nb2:#329e50; --ntxt:#fff; } /* $100 Emerald Green */
+
+  /* United States Banknotes colorways */
+  .note[data-currency="USD"][data-note="100"] { --nb1:#cfd6cd; --nb2:#e8ede6; --ntxt:#163825; }    /* $1 Washington Green */
+  .note[data-currency="USD"][data-note="200"] { --nb1:#cbd5cc; --nb2:#e5eee7; --ntxt:#163825; }    /* $2 Jefferson Green */
+  .note[data-currency="USD"][data-note="500"] { --nb1:#d8d2dc; --nb2:#f0eaf2; --ntxt:#321f3a; }    /* $5 Lincoln Subtle Purple */
+  .note[data-currency="USD"][data-note="1000"] { --nb1:#ded4c5; --nb2:#f6ecdb; --ntxt:#422a10; }   /* $10 Hamilton Warm Orange */
+  .note[data-currency="USD"][data-note="2000"] { --nb1:#d0ded2; --nb2:#e8f4ea; --ntxt:#163b22; }   /* $20 Jackson Subtle Green */
+  .note[data-currency="USD"][data-note="5000"] { --nb1:#decad0; --nb2:#f4e2e6; --ntxt:#401a22; }   /* $50 Grant Subtle Blue/Red */
+  .note[data-currency="USD"][data-note="10000"] { --nb1:#c2d5db; --nb2:#dcebf0; --ntxt:#113344; }  /* $100 Franklin Teal / Blue ribbon */
+  .note .chev { font:900 11px/9px Arial,sans-serif; color:#2fe06a; letter-spacing:0; text-align:center; text-shadow:0 0 6px #29d85a; animation:chev 1.3s ease-in-out infinite; }
+  .note b { font:800 11px/1 Arial,sans-serif; letter-spacing:.08em; color:#d4d4da; margin-top:auto; }
+  .note em { font:800 15px/1 Arial,sans-serif; font-style:normal; color:#7dff9f; text-shadow:0 0 6px #29d85a88; }
+  .note:hover .slot { box-shadow:0 0 0 1px #000, 0 0 14px 4px #5dff8ccc; }
+  .note.feed .slot { background:#7dff9f; box-shadow:0 0 14px 5px #5dff8c; animation:none; }
+  .note.feed .bill { animation:billin .95s cubic-bezier(.35,0,.65,1) forwards; }
+  @keyframes chev { 0%,100% { opacity:.35; transform:translateY(2px); } 50% { opacity:1; transform:translateY(-2px); } }
+  @keyframes billin { 0% { top:134px; opacity:1; } 100% { top:-156px; opacity:1; } }
+  @keyframes nudge { 40% { transform:translateY(3px); } }
+  #topbar { position:absolute; top:8px; left:10px; right:10px; z-index:3; display:flex; justify-content:flex-start; align-items:center; gap:8px; pointer-events:none; }
+  #topbar .btnlink, #topbar button { pointer-events:auto; opacity:.75; transition:opacity .15s; padding:3px 10px; font-size:12px; }
+  #topbar .btnlink:hover, #topbar button:hover, #topbar .btnlink:focus-visible, #topbar button:focus-visible { opacity:1; }
+  /* progressive jackpot levels (games that have them): two lit counters side by side between the title and the meters */
+  #jackpots { display:none; gap:clamp(8px, 2vw, 18px); justify-content:center; width:100%; max-width:560px; }
+  #jackpots.on { display:flex; }
+  #jackpots .jp[hidden] { display:none; }   /* a single-level game shows one counter (the .jp display rule would override the hidden attribute) */
+  #jackpots .jp { flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; padding:3px 8px 4px; border-radius:6px; background:linear-gradient(180deg, #2b0707, #120303);
+    border:2px solid #15090a; box-shadow:0 0 0 2px #7a5a1c, inset 0 0 12px rgba(0,0,0,.8), 0 4px 10px #000a; }
+  #jackpots .jp span { font:400 clamp(10px, 1.7vw, 12.5px)/1.2 'Bungee', Impact, sans-serif; letter-spacing:.14em; color:#ffd666; text-shadow:0 0 6px rgba(255,170,40,.55); }
+  #jackpots .jp b { display:block; max-width:100%; font:400 clamp(17px, 3.4vw, 28px)/1.1 'Share Tech Mono', ui-monospace, Consolas, monospace; letter-spacing:.05em; color:#ff4a36; font-variant-numeric:tabular-nums;
+    text-shadow:0 0 8px rgba(255,60,30,.75), 0 0 2px #ffb0a0; white-space:nowrap; overflow:hidden; }
+  #jackpots .jp.tick b { animation:jptick .4s ease-out; } @keyframes jptick { from { color:#fff1c0; } }
+  @media (prefers-reduced-motion:reduce) { #jackpots .jp.tick b { animation:none; } }
+  #util { display:flex; flex-wrap:wrap; gap:4px; justify-content:center; align-items:center; margin:14px auto 0; max-width:800px; padding:8px 6px;
+    background:rgba(27,18,10,.72); border:1px solid var(--line); border-radius:var(--radius); }
+  #util > button { padding:6px 9px; } #util .grp { padding:4px 4px 4px 8px; gap:4px; } #util .grp select { padding:3px 6px; }
+  #util .grp label { display:flex; align-items:center; gap:4px; }
+  #devtools { max-width:800px; margin:12px auto 0; font-size:13px; color:var(--muted); }
+  #devtools summary { cursor:pointer; width:max-content; padding:4px 2px; color:var(--faint); }
+  #devtools summary:hover { color:var(--muted); }
+  #devtools .devrow { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px; margin-top:6px; border:1px dashed var(--line2); border-radius:var(--radius); }
+  /* CRT mode: glossy black cabinet bezel around a curved-glass tube (shader in js/crt.js, ported from felixweb) */
+  #bezel { max-width:800px; margin:0 auto; }
+  #sticker { display:none; position:absolute; left:0.9%; bottom:8%; width:7.8%; filter:drop-shadow(0 2px 3px #000); pointer-events:none; z-index:2; }
+  #bezel.crt #sticker { display:none; }
+  #bezel.crt { padding:3.6% 9% 4.6%; border-radius:var(--radius); box-shadow:0 10px 30px #000, inset 0 0 0 2px #111, inset 0 2px 0 #3a3a3e;
+    background:radial-gradient(120% 90% at 50% 0%, #2d2d31 0%, #151517 55%, #0a0a0b 100%); position:relative; }
+  #bezel.crt::before { content:''; position:absolute; inset:2.4% 3% 3.2%; border-radius:18px; box-shadow:inset 0 0 0 2px #050505, inset 0 6px 14px #000c, 0 1px 0 #3d3d41; pointer-events:none; }
+  #crtgl { position:absolute; inset:0; width:100%; height:100%; display:none; pointer-events:none; }
+  #stage.gl #crtgl { display:block; } #stage.gl canvas#screen { visibility:hidden; }
+  #bezel.crt #stage { background:#020202; border-radius:5% / 3.8%; overflow:hidden; box-shadow:0 0 0 1px #2b2b2b, inset 0 0 0 1px #141414; max-width:none; }
+  #bezel.crt #stage::after { content:''; position:absolute; inset:0; pointer-events:none; border-radius:inherit;   /* glass sheen + edge shading */
+    background:linear-gradient(115deg, #ffffff14 0%, #ffffff05 22%, transparent 38%), radial-gradient(120% 120% at 50% 40%, transparent 62%, #0009 100%); }
+  /* the game screen gets the same corners; its edge ring is a box shadow, so it follows them */
+  #bezel:not(.crt) #stage { box-shadow:0 0 0 3px var(--edge),0 8px 30px #000; border-radius:0; overflow:hidden; }
+  #help { position:absolute; inset:0; background:#000d; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
+  #help.open { display:flex; }
+  /* Audit > Game Replay list, and the banner of a recalled game */
+  #audit { position:absolute; inset:0; background:#000e; display:none; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#f4e7c8; font:13px/1.3 system-ui,sans-serif; z-index:5; }
+  #audit.open { display:flex; } #audit h4 { margin:0; color:#ffe27a; letter-spacing:.05em; }
+  #audit table { border-collapse:collapse; min-width:62%; } #audit td, #audit th { padding:2px 10px; text-align:right; } #audit td:first-child, #audit th:first-child { text-align:left; }
+  #audit tr.sel td { background:#ffe27a; color:#1a1005; } #audit tr.na td { color:#9a8a6a; } #audit tbody tr { cursor:pointer; }
+  #audit .btns { display:flex; gap:6px; } #audit .btns button { padding:4px 10px; }
+  #audit .meters { display:none; } #audit.mt table.meters { display:table; } #audit.mt div.meters { display:flex; } #audit.mt .list { display:none; }
+  #rcbar { position:absolute; left:0; right:0; top:0; display:none; padding:4px 8px; background:#000c; color:#ffe27a; font:bold 13px/1.3 system-ui,sans-serif; text-align:center; z-index:4; pointer-events:none; }
+  #rcbar.on { display:block; }
+  #pickhint { display:none; margin:8px auto 0; max-width:800px; padding:6px 10px; color:#ffe27a; background:#000a; border:1px solid #6b5a1a; border-radius:6px; font:bold 14px/1.3 system-ui,sans-serif; text-align:center; } #pickhint.on { display:block; }
+  #help img { width:84%; border:2px solid var(--edge); }
+  #stats { max-width:800px; margin:14px auto 0; background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; }
+  #stats h3 { margin:0 0 8px; font-size:14px; letter-spacing:.02em; color:var(--gold); display:flex; justify-content:space-between; align-items:center; }
+  #stats h3 button { font-size:12px; padding:4px 12px; }
+  #stats dl { margin:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:4px 16px; }
+  #stats div { display:flex; justify-content:space-between; gap:8px; }
+  #stats dt { color:var(--muted); } #stats dd { margin:0; font-variant-numeric:tabular-nums; color:var(--text); }
+  #stats .neg { color:#ff8a7a; } #stats .pos { color:#8aff9a; }
+  #notes { position:relative; z-index:1; margin:2px 0 0; color:#e6d5ab; font-size:13px; font-weight:700; line-height:1.3; text-align:center; text-shadow:0 1px 2px #000; white-space:nowrap; max-width:100%; }   /* one line: fitNotes shrinks it */
+  #notes kbd { font-size:.85em; padding:0 .46em; }
+  @media (hover:none) and (pointer:coarse) { #notes { display:none; } }
+  #marquee.nobanner #notes { display:none; }   /* the shortcuts go with the banner */   /* phones and tablets: no keyboard to take the shortcuts */
+  #legal { max-width:800px; margin:22px auto 0; color:var(--faint); font-size:11px; line-height:1.5; text-align:center; }
+  body.fs #legal { display:none; }   /* full screen: the game and its panel only */
+  /* touch + keyboard + small screens */
+  button, select, .cb, .note { touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  body.fs #app { max-width:none; padding-top:8px; }
+  .btnlink { font:inherit; font-size:13px; color:var(--text); background:var(--card2); border:1px solid var(--line2); border-radius:5px; padding:6px 14px; text-decoration:none; }
+  .btnlink:hover { background:#33220f; border-color:#7a5326; }
+  button:focus-visible, select:focus-visible { outline:3px solid #7fc8ff; outline-offset:2px; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  @media (max-width:760px), (orientation:landscape) and (max-height:520px) {
+    #app { padding:8px 6px 20px; }
+    #cab { grid-template-columns:1fr; padding:5px 4px; gap:8px; }
+    #cab .row { gap:6px; } #cab .row .cb { height:58px; font-size:11px; min-width:0; padding:3px 1px; } .cb big { font-size:16px; } .cb small { font-size:7.5px; }
+    #spinwrap { grid-column:1; grid-row:auto; justify-content:stretch; gap:6px; }
+    #spinwrap > .cb, #spinwrap .stack, #spinwrap .note { flex:1; width:auto; min-width:0; }
+    #spinwrap .stack { grid-template-columns:1fr 1fr; } #spinwrap .stack .cb, #spinwrap .stack #slot .cb { width:100%; }
+    #spinwrap .stack { gap:6px; } #spinwrap .stack .cb, #spinwrap > .cb { width:100%; height:58px; }
+    /* phone: the keys under the BET and PLAY rows sit on the same five columns. Slot key (PLAY EXTRA etc.), GAMBLE, AUTO on top; FEATURE and a double-width SPIN below; the note acceptor fills columns 4-5.
+       Without a slot key GAMBLE takes column 1 and AUTO columns 2-3. Two or more prompt keys get a row of their own underneath. */
+    #cab #spinwrap { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:6px; align-items:stretch; }
+    #cab #spinwrap .stack, #cab #spinwrap .toprow, #cab #spinwrap #slot, #cab #spinwrap #fk { display:contents; }
+    #cab #spinwrap .cb { width:auto; min-width:0; height:58px; font-size:12px; }
+    #cab #spinwrap #auto, #cab #spinwrap .spin { font-size:20px; }
+    #cab #spinwrap #slot > .cb { grid-column:1; grid-row:1; }
+    #cab #spinwrap #gamble { grid-column:2; grid-row:1; } #cab #spinwrap #auto { grid-column:3; grid-row:1; }
+    #cab #spinwrap .stack:not(.hasslot) #gamble { grid-column:1; } #cab #spinwrap .stack:not(.hasslot) #auto { grid-column:2 / span 2; }
+    #cab #spinwrap #fk .cb { grid-column:1; grid-row:2; }
+    #cab #spinwrap .spin { grid-column:2 / span 2; grid-row:2; }
+    #cab #spinwrap .note { grid-column:4 / span 2; grid-row:1 / span 2; width:auto; height:122px; min-height:0; }   /* two key rows: 58 + 6 + 58 */
+    #cab #spinwrap .stack:has(#fk .cb:nth-child(2)) #fk { display:flex; flex-wrap:wrap; gap:6px; grid-column:1 / -1; grid-row:3; width:auto; min-width:0; }
+    #cab #spinwrap .stack:has(#fk .cb:nth-child(2)) #fk .cb { flex:1 1 70px; }
+    #cab #spinwrap .stack:has(#fk .cb:nth-child(2)) .spin { grid-column:1 / span 3; }   /* the prompt keys left column 1 of row 2 for their own row: SPIN fills it */
+    .note { height:122px; width:auto; } .note .bezel { width:70%; }
+    #util { gap:6px; } #util .grp { flex-wrap:wrap; justify-content:center; }
+    #stats dl { grid-template-columns:1fr 1fr; }
+  }
+  /* a phone on its side (short and wide): the screen takes the window's height at the left and the marquee's buttons, the control panel and the page buttons stack in a column beside it, so
+     the game plays without scrolling. The panel uses the compact phone layout above with lower keys. The banner, jackpots and meters stay out of the way: the game screen shows them. */
+  @media (orientation:landscape) and (max-height:520px) {
+    #app { max-width:none; padding:2px 6px 0; display:grid; grid-template-columns:auto minmax(0, 1fr); grid-template-rows:auto auto auto 1fr; gap:6px 8px; align-items:start; }
+    #app > * { grid-column:1 / -1; }
+    #app > #marquee, #app > #cab, #app > #util { grid-column:2; max-width:none; width:auto; }
+    #app > #bezel { grid-column:1; grid-row:1 / span 4; margin:0; }
+    #marquee { display:flex !important; margin:0; height:32px !important; min-height:0; overflow:visible; } #marquee #topbar { top:3px; left:0; right:0; } #marquee .art, #marquee .glow, #marquee .vig, #marquee .mqbody { display:none; }
+    #cab { margin:0; padding:3px; gap:5px; } #cab .row .cb, #cab #spinwrap .cb { height:44px; } #cab #spinwrap .note { height:93px; }
+    #util { margin:0; gap:4px; } #util button, #util .grp { font-size:12px; padding-top:3px; padding-bottom:3px; }
+    #stats, #devtools, #legal { display:none; }
+    /* left-hand mode (menu > Display > Controls side): the controls and menu button go to the left of the game screen */
+    #app.lefty { grid-template-columns:minmax(0, 1fr) auto; }
+    #app.lefty > #marquee, #app.lefty > #cab, #app.lefty > #util { grid-column:1; }
+    #app.lefty > #bezel { grid-column:2; }
+  }
+  @media (prefers-reduced-motion:reduce) { .note .led, .note .slot, .note .chev, .cb.blank.lit { animation:none; } }
+  kbd { background:var(--card2); border:1px solid var(--line2); border-bottom-width:2px; border-radius:3px; padding:0 6px; font:600 11px/1.6 system-ui,sans-serif; color:var(--text); }
+  #pick { max-width:800px; margin:14px auto; text-align:center; }
+  /* One key size for the whole panel: every key is a --key square, 64 px, with no double-width SPIN or taller AUTO / GAMBLE. The rules above keep their
+     colours and lamps; this block, last and with !important, only sets size and placement. --key shrinks below 64 px only when five keys and their gaps do not fit
+     the panel's width (narrow phones, the panel column beside the screen on a phone on its side), so the keys still share one size there. */
+  #cab { container-type:inline-size; --gap:10px; --key:min(64px, calc((100cqw - 4 * var(--gap)) / 5)); }
+  #cab .cb { width:var(--key) !important; height:var(--key) !important; min-width:0 !important; flex:0 0 var(--key) !important; padding:2px 1px !important; --pt:2px; --pb:2px; font-size:calc(var(--key) * .18) !important; }
+  #cab .cb big { font-size:calc(var(--key) * .28) !important; } #cab .cb small { font-size:calc(var(--key) * .125) !important; }
+  #cab .cb.spin, #cab .cb.blank { font-size:calc(var(--key) * .27) !important; } #cab .cb.spin.collect, #cab .cb.fkey { font-size:calc(var(--key) * .16) !important; }
+  #cab .row { gap:var(--gap) !important; justify-content:flex-start; }
+  /* AUTO and a slot key (PLAY EXTRA) on the top row; GAMBLE, FEATURE / prompt keys and SPIN on the bottom row; two or more prompt keys get a third row */
+  #cab .stack { display:grid !important; grid-template-columns:none !important; grid-auto-columns:var(--key); grid-template-rows:var(--key) var(--key); grid-auto-rows:var(--key); gap:var(--gap) !important; }
+  #cab .stack .toprow, #cab .stack #slot, #cab .stack #fk { display:contents !important; }
+  /* One fixed layout for every game: a 3 x 2 block of key cells, counted from the right. Column 1: AUTO over SPIN. Column 2: the slot key (EXTRA) over GAMBLE.
+     Column 3: the second prompt key over the first (FEATURE, GAME MENU). A cell a game does not use stays empty (its key hidden), so keys never move between games;
+     a third prompt key and more go on a row below */
+  #cab .stack { direction:rtl; grid-template-columns:repeat(3, var(--key)) !important; } #cab .stack .cb { direction:ltr; }
+  #cab .stack #auto { grid-area:1 / 1 !important; } #cab .stack .spin { grid-area:2 / 1 !important; }
+  #cab .stack #slot > .cb { grid-area:1 / 2 !important; } #cab .stack #gamble { grid-area:2 / 2 !important; }
+  #cab .stack #fk .cb:nth-child(1 of :not([hidden])) { grid-area:2 / 3 !important; } #cab .stack #fk .cb:nth-child(2 of :not([hidden])) { grid-area:1 / 3 !important; }
+  #cab .stack #fk .cb:nth-child(n + 3 of :not([hidden])) { grid-row:3 !important; grid-column:auto !important; }
+  /* the note acceptor (not a key): 1.5 keys wide (96 px), as tall as the two key rows and the gap between them */
+  #cab #spinwrap { gap:var(--gap) !important; } #cab .note { width:calc(1.5 * var(--key)) !important; height:calc(2 * var(--key) + var(--gap)) !important; flex:none !important; }
+  @media (max-width:760px), (orientation:landscape) and (max-height:520px) {
+    /* phone: the desktop layout on two rows, keys scaled down to fit: BET and PLAY rows on the left, the 3 x 2 key block on the right.
+       (--key is substituted in the keys, so 100cqw is #cab's content width: #cab is their container). The side padding is the top and bottom's. Seven gaps (four
+       between keys in a row, one to the block, two in the block) and 1 px for rounding leave eight keys; any rounding left over goes between the rows and the block */
+    #cab { --gap:4px; --key:min(64px, calc((100cqw - 1px - 7 * var(--gap)) / 8)); padding:5px !important; grid-template-columns:auto auto !important; justify-content:space-between; column-gap:var(--gap) !important; row-gap:var(--gap) !important; }
+    #cab .row { justify-content:flex-start; }
+    #cab #betrow, #cab #playrow { grid-column:1 !important; }
+    #cab #spinwrap { grid-column:2 !important; grid-row:1 / span 2 !important; display:flex !important; }
+    /* the note acceptor is hidden and pops up over the game when the credit will not cover the bet (#cab.needcash, set by sync and the touch panel) */
+    /* the small print stays (LINES / REELS / CREDITS), one word, no smaller than 6.5 px; "PER LINE" is left out */
+    #cab .cb small { font-size:max(6.5px, calc(var(--key) * .15)) !important; white-space:nowrap; } #cab .cb small .pl { display:none; }
+    #cab .note { display:none !important; }
+    #cab.needcash .note { display:flex !important; position:fixed !important; z-index:60; left:50%; top:45%; transform:translate(-50%, -50%); width:96px !important; height:138px !important;
+      box-shadow:0 0 0 100vmax #000a, 0 6px 24px #000; }
+    #cab.needcash .note::before { content:'Not enough credit to play'; position:absolute; bottom:calc(100% + 12px); left:50%; transform:translateX(-50%); white-space:nowrap; color:#fff; font:600 15px system-ui, sans-serif; }
+  }
+  /* phone on its side: the panel is a narrow column, so the keys other than BET and PLAY go on a third row of their own, right to left: SPIN, AUTO, GAMBLE, the slot key
+     (EXTRA), the prompt keys (FEATURE ...); six cells, so the keys are a sixth of the width */
+  @media (orientation:landscape) and (max-height:520px) {
+    #cab { --gap:5px; --key:min(64px, calc((100cqw - 1px - 5 * var(--gap)) / 6)); grid-template-columns:auto !important; justify-content:center; }
+    #cab #betrow, #cab #playrow, #cab #spinwrap { grid-column:1 !important; } #cab #spinwrap { grid-row:3 !important; }
+    #cab .stack { grid-template-columns:repeat(6, var(--key)) !important; grid-template-rows:var(--key) !important; }
+    #cab .stack .spin { grid-area:1 / 1 !important; } #cab .stack #auto { grid-area:1 / 2 !important; } #cab .stack #gamble { grid-area:1 / 3 !important; }
+    #cab .stack #slot > .cb { grid-area:1 / 4 !important; } #cab .stack #fk .cb:nth-child(1 of :not([hidden])) { grid-area:1 / 5 !important; }
+    #cab .stack #fk .cb:nth-child(2 of :not([hidden])) { grid-area:1 / 6 !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="live" class="sr" role="status" aria-live="polite"></div>
+  <header id="marquee"><div class="art" aria-hidden="true"></div><div class="glow" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div><div id="topbar"><a href="games.html" class="btnlink">← Games</a><input type="range" id="speed" min="0" max="3" step="1" value="0" list="speednotch" aria-label="Speed" title="Play faster: more emulation frames per screen refresh, the game itself is unchanged" style="order:8;margin-left:auto"><datalist id="speednotch"><option value="0"></option><option value="1"></option><option value="2"></option><option value="3"></option></datalist><button id="fsbtn" class="btnlink" type="button" title="Full screen (F)" style="order:9;cursor:pointer" hidden>⛶ Full screen</button>
+  </div><div class="mqbody"><h1 id="gtitle"></h1>
+    <div id="jackpots" role="group" aria-label="Progressive jackpots"><div class="jp"><span></span><b></b></div><div class="jp"><span></span><b></b></div></div>
+    <div id="lcd" role="group" aria-label="Meters"><div class="cell"><span>CREDIT</span><b id="hcr">–</b></div><div class="cell"><span>BET</span><b id="hbet">–</b></div><div class="cell"><span>WIN</span><b id="hwin">–</b></div></div><p id="notes"><kbd>Space</kbd> spin · <kbd>←</kbd><kbd>→</kbd> play lines · <kbd>↑</kbd><kbd>↓</kbd> bet per line · <kbd>Enter</kbd> add credits.</p></div></header>
+  <div id="bezel"><div id="stage"><canvas id="screen" width="640" height="480" role="img" aria-label="Game screen"></canvas><canvas id="crtgl"></canvas>
+    <div id="help"><canvas id="helpcv" style="width:92%;border:2px solid var(--edge)"></canvas><div><button id="hprev">◀</button> <span id="hpage">1/1</span> <button id="hnext">▶</button> <button id="hclose">Close</button></div></div>
+    <div id="audit" role="dialog" aria-label="Game replay"><h4 id="autitle">GAME REPLAY</h4><table class="list"><thead><tr><th>Previous Game</th><th>Credit</th><th>Bet</th><th>Win</th></tr></thead><tbody id="aulist"></tbody></table>
+      <table class="meters"><thead><tr><th></th><th>Prior to Game Start</th><th>End of Game</th><th>Prior to Start of Next Game</th></tr></thead><tbody id="aumeters"></tbody></table>
+      <div class="btns list"><button id="aureplay">Replay game</button><button id="aumt">View game meters</button><button id="aupause">Set pausing: NO</button><button id="auclose">Close</button></div><small class="list">↑ ↓ choose · Enter replay · M meters · P pausing · Esc close</small>
+      <div class="btns meters"><button id="aumtback">Back</button></div></div>
+    <div id="rcbar" role="status"></div></div><div id="pickhint" role="status"></div></div>
+  <div id="cab">
+    <div class="row" id="betrow"></div>
+    <div class="row" id="playrow"></div>
+    <div id="spinwrap"><div class="stack"><div class="toprow"><button class="cb gamble" id="gamble" title="Gamble the win (G)" disabled>GAMBLE</button><button class="cb blank" id="auto" title="Autoplay">AUTO</button></div><div id="slot"><div id="fk"></div></div><button class="cb spin" id="spin">SPIN</button></div><button id="add" class="note" data-note="10000" title="Insert note — Enter"><i class="led"></i><span class="bezel"><i class="slot"></i></span><span class="bwrap"><span class="bill"><i class="strip"></i><i class="holo"></i><b class="val">100</b><i class="port"></i><span class="nat">AUSTRALIA</span></span></span><span class="chev">▲<br>▲</span><b>INSERT NOTE</b><em id="notev">$100</em></button></div>
+  </div>
+  <div id="util">
+    <button id="helpbtn">Paytable</button>
+    <button id="audbtn" title="Audit: replay one of the last 10 games (Audit > 2.3 Replay of Previous Games)">Game replay</button>
+    <button id="shotbtn" title="Copy a picture of the marquee, game screen and buttons to the clipboard">Screenshot</button>
+    <span class="grp" id="uihost"></span>
+    <span class="grp">Denom <select id="denom"></select> Currency <select id="currency"><option value="AUD" selected>AUD</option><option value="USD">USD</option></select> Note <select id="note"><option value="500">$5</option><option value="1000">$10</option><option value="2000">$20</option><option value="5000">$50</option><option value="10000" selected>$100</option></select></span>
+    <span class="grp">RTP <select id="rtp"><option value="1">87.87</option><option value="2">90.31</option><option value="3">92.26</option></select></span>
+    <span class="grp" id="sound"><button id="mute" type="button" aria-label="Mute sound" aria-pressed="false" title="Mute"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path class="spk" d="M4 9v6h4l5 4V5L8 9z"/><path class="wav" d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M15 9l6 6M21 9l-6 6"/></svg></button><input type="range" id="vol" min="0" max="1" step="0.02" value="1" aria-label="Volume"></span>
+  </div>
+  <div id="stats"><h3>Session stats <button id="sreset">Reset stats &amp; credits</button></h3><dl id="sl"></dl></div>
+  <details id="devtools"><summary>Developer tools</summary><div class="devrow">
+    <select id="vbad" title="Mark this game as visually broken"><option value="">Visuals: ---</option><option value="ok">Visuals OK</option><option value="broken">Mark visually broken…</option></select>
+    <select id="vsub" style="display:none"></select><span id="vmsg" style="font-size:12px;color:#9a9"></span>
+    <span class="grp" id="testgrp" hidden>Test <select id="testsel"><option value="">menu…</option><option value="feature">Trigger feature</option></select></span>
+    <button id="crtbtn">CRT: off</button>
+    <span class="grp crtopt">Curve <select id="crtcurve"><option>off</option><option>small</option><option>medium</option><option>large</option></select> Glow <select id="crtglow"><option>off</option><option>light</option><option>medium</option><option>strong</option></select> <label><input type="checkbox" id="crtscan"> Scanlines</label></span>
+    <button id="copydebug" title="Copy emulator state & registers for diagnosis">Copy debug</button>
+  </div></details>
+  <p id="legal">Disclaimer: a play-money emulator for study and preservation only. No real money can be wagered, paid out or won, and credits have no cash value. Not affiliated with, endorsed by or connected to Aristocrat Leisure Limited; game names, artwork and code belong to their owners. You must supply ROMs you are entitled to use; none are provided. Results here say nothing about any real machine. If gambling stops being fun, call Gambling Help on 1800 858 858. See <a href="NOTICE.md">NOTICE.md</a>.</p>
+</div>
+<div id="boot" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0c0703;color:#f2e3bd;font:15px system-ui,sans-serif;text-align:center;z-index:50;padding:20px"><div style="width:min(420px,86vw)"><div id="bootmq" style="width:100%;aspect-ratio:640/300;margin-bottom:16px;max-width:none"><div class="art" aria-hidden="true"></div><div class="glow" aria-hidden="true"></div><div class="vig" aria-hidden="true"></div><div class="mqbody"><h1 id="boottitle"></h1></div></div><div id="bootmsg">Loading…</div><div id="bootbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="margin-top:14px;height:12px;border-radius:3px;background:#2a1a0c;border:1px solid #6b4318;overflow:hidden"><i style="display:block;height:100%;width:0;background:linear-gradient(90deg,#c8781e,#ffe27a);transition:width .15s"></i></div><div id="bootpct" style="margin-top:6px;font-size:12px;color:#bda877"></div></div></div>
+<script src="js/mk6.js"></script><script src="js/romstore.js"></script><script src="js/mk6save.js"></script><script src="js/sh4.js"></script><script src="js/avl.js"></script><script src="js/flic.js"></script>
+<script src="js/mk6tables.js"></script><script src="js/mk6sys.js"></script><script src="js/jpeg.js"></script><script src="js/mk6vm.js"></script><script src="js/mk6render.js"></script><script src="js/mk6host.js"></script><script src="js/mk6touchhost.js"></script><script src="js/touchplay.js"></script><script src="js/jackpot.js"></script><script src="js/denoms.js"></script><script src="js/audio.js"></script><script src="js/sndbank.js"></script><script src="js/emusound.js"></script><script src="js/crt.js"></script><script src="js/uiprefs.js"></script>
+<script>
+// ?game=<id> (ROM from the browser library, as on the Games page) · ?rtp=<set> (combination_init variant, default the game's highest RTP set) · maps/<id>.json gives the per-game addresses and keys
+(async function () {
+  try { if (localStorage.getItem('mk6-dev') === '1') document.getElementById('devtools').open = true; } catch (e) {}   // games.html Developer switch
+  UIPREFS.apply(); UIPREFS.panel(document.getElementById('uihost'));   // banner and LCD display settings (js/uiprefs.js), applied before the first paint
+  const $ = id => document.getElementById(id), q = new URLSearchParams(location.search), id = /^[a-z0-9-]+$/.test(q.get('game') || '') ? q.get('game') : 'queen-of-the-nile';
+  // loading progress: download 0-40%, unzip 40-50%, image decoding 50-95%, start-up to 100%
+  const bar = (f, note) => { const v = Math.max(0, Math.min(100, Math.round(f * 100))); $('bootbar').firstChild.style.width = v + '%'; $('bootbar').setAttribute('aria-valuenow', v); $('bootpct').textContent = v + '%' + (note ? ' · ' + note : ''); };
+  const repaint = () => new Promise(r => setTimeout(r, 0));
+  const msg = t => { $('bootmsg').innerHTML = t; }, store = { get(k) { try { return JSON.parse(localStorage.getItem('emu-' + k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem('emu-' + k, JSON.stringify(v)); } catch (e) {} } };
+  // game recall (?recall=N, N = 1 for the last game .. 10): the page replays that logged game on a fresh VM and keeps nothing; ?audit opens the list
+  const RECALL = Math.min(10, Math.max(0, parseInt(q.get('recall'), 10) || 0)); if (RECALL) store.set = () => {};
+  // visual-failure feedback: POST /api/feedback (data/visual-feedback.json), localStorage copy as fallback
+  {
+    const KINDS = ['Black or missing reels', 'Reels stop out of order', 'Missing or wrong symbols', 'Wrong layering / items on top', 'Items clipped or misplaced', 'No win animation / line display', 'Win flash wrong', 'Wrong or missing text', 'Wrong colours', 'Free game / feature screen broken', 'Gamble screen broken', 'Gamble screen appears behind reels after spin/win', 'Reserve flashes on screen after spin/win', 'Winning symbols not flashing', 'Line numbers only partially visible', 'Other'];
+    const vb = $('vbad'), vs = $('vsub'), vm = $('vmsg'), LK = 'mk6-visual-' + id;
+    vs.innerHTML = '<option value="">What is wrong?</option>' + KINDS.map(k => '<option>' + k + '</option>').join('');
+    const send = async (type, sub) => {
+      try { localStorage.setItem(LK, JSON.stringify({ type, sub })); } catch (e) {}
+      try { const r = await fetch('/api/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, type, sub }) }); vm.textContent = r.ok ? 'saved' : 'saved locally only'; }
+      catch (e) { vm.textContent = 'saved locally only'; }
+    };
+    try { const o = JSON.parse(localStorage.getItem(LK)); if (o && o.type) { vb.value = o.type; vs.style.display = o.type === 'broken' ? '' : 'none'; vs.value = o.sub || ''; } } catch (e) {}
+    fetch('visual-feedback.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).then(f => { const o = f[id]; if (o) { vb.value = o.type; vs.style.display = o.type === 'broken' ? '' : 'none'; vs.value = o.sub || ''; } }).catch(() => {});
+    vb.onchange = () => { vs.style.display = vb.value === 'broken' ? '' : 'none'; if (vb.value !== 'broken') { vs.value = ''; send(vb.value, ''); } else if (vs.value) send(vb.value, vs.value); };
+    vs.onchange = () => { if (vb.value && vs.value) send(vb.value, vs.value); };
+  }
+  // loading screen: the game's name and screenshot, next to the progress messages
+  fetch('games.json').then(r => r.json()).then(j => { const g = (j.profiles || []).find(x => x.id === id); $('boottitle').textContent = g ? g.title : id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }).catch(() => { $('boottitle').textContent = id.replace(/-/g, ' '); });
+  // the marquee image (the ROM's attract art) cached in the library store; without one the title above stands in until this load caches it
+  const libP = fetch('/api/library', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  libP.then(lib => {
+    const rec = lib && lib.games && lib.games[id], f = rec && rec.files.filter(x => x.name === 'marquee.jpg' || x.name === 'marquee.png').sort((x, y) => y.mtime - x.mtime)[0];
+    if (f) document.querySelector('#bootmq .art').style.backgroundImage = 'url("/api/games/' + encodeURIComponent(id) + '/files/' + f.name + '?v=' + f.mtime + '")';
+  });
+  try {
+    msg('Checking roms/ folder and browser library…');
+    const mb = n => (n / 1048576).toFixed(1) + ' MB';
+    const rec = await RomStore.get(id, (got, total) => { msg('Downloading the ROM…'); bar(total ? 0.4 * got / total : 0.2, mb(got) + (total ? ' of ' + mb(total) : '')); });
+    if (!rec) {                                                  // no ROM stored yet: pick or drop the zip right here (kept in this browser only)
+      msg('No ROM for <b>' + id + '</b> found in <code>roms/</code> or browser storage.<br><br>Place <code>' + id + '.zip</code> in the <code>roms/</code> directory, or <label style="color:#ffe27a;cursor:pointer;text-decoration:underline">choose the ROM zip<input id="zipin" type="file" accept=".zip" hidden></label> or drop it on this page.');
+      const take = async f => { if (!f) return; msg('Storing ' + f.name + '…'); await RomStore.put(id, f.name, await f.arrayBuffer()); location.reload(); };
+      $('zipin').onchange = e => take(e.target.files[0]); ['dragover', 'drop'].forEach(t => addEventListener(t, e => { e.preventDefault(); if (t === 'drop') take(e.dataTransfer.files[0]); })); return;
+    }
+    // marquee title: the catalogue name (games.json), the id until it arrives
+    $('gtitle').textContent = id.replace(/-/g, ' ');
+    fetch('games.json').then(r => r.json()).then(d => { const g = (d.games || []).find(x => x.id === id); if (g) { $('gtitle').textContent = g.title; document.title = g.title + ' — Retro Pokies'; } }).catch(() => {});
+    let map = {}; try { map = await (await fetch('maps/' + id + '.json')).json(); } catch (e) { try { map = JSON.parse(localStorage.getItem('mk6-map-' + id)) || {}; } catch (x) {} }
+    if (!map.state && !map.touch) {                              // no map yet (a touch map has none: its ROM runs the game, no discovery): run the address discovery on this ROM once, keep it in this browser
+      msg('No map for <b>' + id + '</b> yet: decoding the ROM (about half a minute, once)…');
+      const m = await new Promise(res => { const w = new Worker('js/discover-worker.js'); w.onmessage = e => { if (e.data.progress) return msg('Decoding <b>' + id + '</b>: ' + e.data.progress); w.terminate(); res(e.data.map); }; w.onerror = () => { w.terminate(); res(null); }; w.postMessage({ id, buf: rec.buf.slice(0) }); });
+      if (!(m && m.state && m.stopBuf && m.starter && Object.keys(m.lineKeys || {}).length && Object.keys(m.betKeys || {}).length)) { msg('Could not decode <b>' + id + '</b>: the ROM was not recognised as a playable MK6 game.'); return; }
+      map = m; try { localStorage.setItem('mk6-map-' + id, JSON.stringify(m)); } catch (x) {}
+    }
+    // a game without saved credits starts with $1000; notes are refused above $9890 (the ROM's 'Credits Not Accepted if Over')
+    const START_CENTS = 100000, LIMIT_CENTS = 989000;
+    // note multiplier (not on a real machine): a note buys sqrt(denomination in cents) times its face value, rounded to 0.1, so a $100 note is $100 at 1c,
+    // $1000 at $1 and $10000 at $100, and a high denomination still gets some play. The credit limit scales with it.
+    const noteMult = d => Math.round(Math.sqrt(d) * 10) / 10, limitFor = d => Math.round(LIMIT_CENTS * noteMult(d) / d);
+    // denominations offered for this game and its default (js/denoms.js, shared with the scanners): all 13 values; the default is the ROM's first enabled value, found after init (below)
+    const DN = MK6DENOM.forMap(map), DENOMS = DN.list, DENOM_DEFAULT = DN.def;
+    $('denom').innerHTML = DENOMS.map(d => '<option value="' + d + '">' + MK6DENOM.label(d) + '</option>').join('');
+    // the denomination the player last chose in any game (denom-last) carries over to every game; a game whose stored denomination differs (or is no
+    // longer offered) moves to it keeping the same money in cents, the remainder kept as dust. Its saved game was made at the old denomination and is not
+    // restored (save0.denom check below), as after a denomination change
+    { const old = store.get('denom-' + id), last = store.get('denom-last'), nd = DENOMS.includes(last) ? last : old && !DENOMS.includes(old) ? DENOM_DEFAULT : null;
+      if (nd && old !== nd) {
+        if (old) { const total = (store.get('credits-' + id) ?? Math.round(START_CENTS / old)) * old + (store.get('dust-' + id) || 0), r = old / nd, st = store.get('stats-' + id), cr = Math.floor(total / nd);
+          if (st) { for (const k of ['wagered', 'won', 'biggest']) if (Number.isFinite(st[k])) st[k] = Math.round(st[k] * r); store.set('stats-' + id, st); }
+          store.set('credits-' + id, cr); store.set('dust-' + id, total - cr * nd); }
+        store.set('denom-' + id, nd); if (old) await MK6SAVE.get(id).then(s => s && s.log && s.log.length ? MK6SAVE.put(id, MK6SAVE.demote(s)) : MK6SAVE.del(id)).catch(() => {}); } }   // a stale save at the old denomination must not come back if the player returns to it; its game log stays (demote: log only, recallable)
+    const denom0 = DENOMS.includes(store.get('denom-' + id)) ? store.get('denom-' + id) : DENOM_DEFAULT; $('denom').value = denom0;
+    msg('Unzipping ' + rec.name + '…'); bar(0.4); await repaint();
+    const rom = await MK6.openZip(new Uint8Array(rec.buf)), vm = new MK6VM.VM(rom, Object.assign({ options: { lineIdx: map.lineIdx ?? 1, betIdx: map.betIdx ?? 0, denom: denom0 } }, MK6TABLES));
+    vm.decodeBlob = async b => { const bm = await createImageBitmap(new Blob([b]), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }); const c = new OffscreenCanvas(bm.width, bm.height), x = c.getContext('2d'); x.drawImage(bm, 0, 0); const d = x.getImageData(0, 0, bm.width, bm.height); return { w: bm.width, h: bm.height, rgba: d.data }; };
+    msg('Decoding the graphics…'); bar(0.5); await repaint();
+    await vm.preload(async (done, total) => { bar(0.5 + 0.45 * done / total, done + ' of ' + total + ' images'); await repaint(); });
+    msg('Starting the game…'); bar(0.95); await repaint();
+    // fit the window so the control panel (#cab) is fully visible: with the banner at its 72 px minimum, spare height goes to the banner (up to
+    // the art's 640x300 shape at its width, 120 px for the plain title); without enough height the game screen shrinks instead (to 480 px wide)
+    // the shortcut line stays on one line: shrink its font (never past 13 px) until it fits the marquee's width
+    const fitNotes = () => {
+      const n = $('notes'); if (!n) return;
+      n.style.fontSize = '';
+      // kbd borders do not scale, so a pass can leave it a pixel or two over; scrollWidth rounds up, so allow 1 px
+      for (let px = 13, k = 0; k < 4 && n.scrollWidth > n.clientWidth + 1 && px > 6; k++) n.style.fontSize = (px = Math.max(6, Math.floor(px * n.clientWidth / n.scrollWidth * 10) / 10 - .1)) + 'px';
+    };
+    const fitMarquee = () => {
+      const mq = $('marquee'), bz = $('bezel'), st = $('stage'), cab = $('cab'); if (!mq || !bz || !cab) return;
+      const maxW = document.fullscreenElement ? Math.min(innerWidth - 32, 1920) : 800;
+      bz.style.maxWidth = mq.style.maxWidth = st.style.maxWidth = cab.style.maxWidth = ''; mq.style.height = ''; mq.classList.remove('tall');
+      // a touch game keeps its Menu button on the game screen; on a phone on its side it goes up to the marquee bar above the controls, clear of the screen
+      const wbtn = $('wmenubtn');
+      // banner and LCD both off (and no jackpot counters): no strip above the game; the Menu button sits on the game's top right corner
+      const bare = !map.touch && mq.classList.contains('nobanner') && mq.classList.contains('nolcd') && !$('jackpots').classList.contains('on') && !matchMedia('(orientation:landscape) and (max-height:520px)').matches;
+      mq.classList.toggle('bare', bare);
+      if (!map.touch && wbtn) { if (bare && wbtn.parentNode !== st) { st.appendChild(wbtn); wbtn.classList.add('onstage'); } else if (!bare && wbtn.parentNode === st) { wbtn.classList.remove('onstage'); $('topbar').appendChild(wbtn); } }
+      if (map.touch && wbtn) {
+        const side = matchMedia('(orientation:landscape) and (max-height:520px)').matches;
+        if (side && wbtn.parentNode === st) { wbtn.dataset.sty = wbtn.getAttribute('style') || ''; wbtn.removeAttribute('style'); wbtn.style.order = '10'; $('topbar').appendChild(wbtn); }
+        else if (!side && wbtn.parentNode !== st && wbtn.dataset.sty !== undefined) { st.appendChild(wbtn); wbtn.setAttribute('style', wbtn.dataset.sty); }
+      }
+      // a phone on its side: the screen is as tall as the window and the panel sits beside it (CSS above), so only the screen's width is fitted here
+      if (matchMedia('(orientation:landscape) and (max-height:520px)').matches) {
+        bz.style.width = '300px'; const ratio = bz.offsetHeight / 300, sw = Math.max(160, Math.min(Math.floor(innerWidth * .62), Math.floor((innerHeight - 8) / Math.max(.1, ratio))));
+        bz.style.width = sw + 'px'; return;
+      }
+      bz.style.width = '';
+      fitNotes();
+      const MIN = mq.offsetHeight;   // title + meters
+      // the screen's height follows its width: scale it to the height left once the panel fits (at least 480 px wide, 320 for a two-screen touch game: its screen is 2:3)
+      const spare = innerHeight - 12 - (cab.getBoundingClientRect().bottom + scrollY);
+      const w = map.touch ? Math.max(320, Math.min(maxW, Math.floor((st.offsetHeight + spare) * 640 / 960))) : Math.max(480, Math.min(maxW, Math.floor(bz.offsetWidth * (bz.offsetHeight + spare) / bz.offsetHeight)));   // a touch game's two screens are 2:3 and only the stage scales (the marquee above keeps its height)
+      if (w !== bz.offsetWidth) { bz.style.maxWidth = mq.style.maxWidth = st.style.maxWidth = w + 'px'; fitNotes(); }
+      if (map.touch) for (let k = 0, cw = w; k < 4; k++) { const d = innerHeight - 12 - cab.getBoundingClientRect().bottom - scrollY + scrollY; if (Math.abs(d) < 3) break; cw = Math.max(320, Math.min(maxW, cw + Math.floor(d * 640 / 960))); bz.style.maxWidth = mq.style.maxWidth = st.style.maxWidth = cw + 'px'; }   // the marquee's height follows its width too: nudge until the panel's bottom meets the window's
+      // a short window (phone on its side): the panel cannot fit under even the narrowest screen, so the screen takes the window's height and the panel sits below it
+      if (map.touch && cab.getBoundingClientRect().bottom + scrollY > innerHeight - 9) {
+        const ratio = st.offsetHeight / Math.max(1, st.offsetWidth), top = st.getBoundingClientRect().top + scrollY, sw = Math.max(160, Math.min(maxW, Math.floor((innerHeight - top - 6) / ratio)));
+        bz.style.maxWidth = mq.style.maxWidth = st.style.maxWidth = sw + 'px';
+      }
+      // the marquee's height depends on its width (the title and meters wrap more when narrow), so one pass can leave the panel below the window: find the widest screen
+      // that fits by halving (not under 480 windowed, 360 in full screen, where nothing may hang below the window)
+      const fits = () => cab.getBoundingClientRect().bottom + scrollY <= innerHeight - 12, setW = x => { bz.style.maxWidth = mq.style.maxWidth = st.style.maxWidth = x + 'px'; fitNotes(); };
+      if (!map.touch && !fits()) { let lo = document.fullscreenElement ? 360 : 480, hi = bz.offsetWidth; setW(lo);
+        if (fits()) { while (hi - lo > 4) { const mid = (lo + hi) >> 1; setW(mid); if (fits()) lo = mid; else hi = mid; } setW(lo); } }
+      if (document.fullscreenElement) cab.style.maxWidth = (bz.offsetWidth || w) + 'px';   // the button panel is as wide as the game and the marquee
+      const left = innerHeight - 12 - (cab.getBoundingClientRect().bottom + scrollY);
+      if (left <= 0) return;
+      const artOn = !!mq.querySelector('.art').style.backgroundImage && !mq.classList.contains('nobanner') && !mq.classList.contains('noart');   // the display settings can hide the art
+      const MIN2 = Math.max(MIN, mq.offsetHeight);   // measured again at the final width: a narrower marquee wraps its title and meters onto more lines
+      const most = artOn ? Math.max(MIN2, mq.clientWidth * 300 / 640) : MIN2;
+      const h = Math.round(Math.min(most, MIN2 + left)); mq.style.height = h + 'px';
+      mq.classList.toggle('tall', h >= MIN2 + 110 && artOn);
+    };
+    // full screen: the button, the F key, and on phones and tablets (a finger is the main pointer, no hover) the first touch on the page (browsers only allow
+    // it from a user action); a PC stays windowed until the button or F is used.
+    // Leaving full screen (button or Esc) is remembered: the page then stays windowed until the button is used again.
+    const fsOk = !!document.documentElement.requestFullscreen;
+    const setFull = on => (on ? document.documentElement.requestFullscreen({ navigationUI: 'hide' }) : document.exitFullscreen()).catch(() => {});
+    const toggleFull = () => setFull(!document.fullscreenElement);
+    if (fsOk) {
+      $('fsbtn').hidden = false; $('fsbtn').onclick = toggleFull;
+      document.addEventListener('fullscreenchange', () => {
+        const on = !!document.fullscreenElement;
+        document.body.classList.toggle('fs', on); $('fsbtn').textContent = on ? '⛶ Exit full screen' : '⛶ Full screen';
+        store.set('fullscreen', on); fitMarquee();
+      });
+      if (store.get('fullscreen') !== false && matchMedia('(pointer: coarse) and (hover: none)').matches) {   // phone / tablet: a finger, nothing that hovers (a PC has a mouse or touchpad)
+        const first = e => {
+          removeEventListener('pointerdown', first, true); removeEventListener('keydown', first, true);
+          const own = (e.target && e.target.closest && e.target.closest('#fsbtn')) || (e.type === 'keydown' && (/^[fF]$/.test(e.key) || (e.key === 'Enter' && e.altKey)));   // those toggle it themselves
+          if (!document.fullscreenElement && !own) setFull(true);
+        };
+        addEventListener('pointerdown', first, true); addEventListener('keydown', first, true);
+      }
+    }
+    $('app').classList.toggle('lefty', store.get('hand') === 'left');
+    addEventListener('resize', fitMarquee); document.addEventListener('mk6-ui', fitMarquee);
+    // the ROM's attract art behind the title (MK6RENDER.marquee picks it, the same as tools/shots.js)
+    {
+      const im = await MK6RENDER.marquee(vm).catch(() => null);
+      if (im) {
+        const c = document.createElement('canvas'); c.width = im.w; c.height = im.h;
+        c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.rgba.buffer, im.rgba.byteOffset, im.w * im.h * 4), im.w, im.h), 0, 0);
+        document.querySelector('#marquee .art').style.backgroundImage = 'url("' + c.toDataURL('image/jpeg', 0.85) + '")';
+        libP.then(lib => { if (lib && lib.writable && !(lib.games && lib.games[id] && lib.games[id].files.some(x => x.name === 'marquee.jpg' || x.name === 'marquee.png')))
+          c.toBlob(bl => bl && fetch('/api/games/' + encodeURIComponent(id) + '/files/marquee.jpg', { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: bl }).catch(() => {}), 'image/jpeg', 0.9); });
+      }
+    }
+    // a key's big label (EXTRA, x15, 1-5) takes at most 85% of the key's inner width: shrink its font until it fits; again whenever the key size changes
+    const fitBig = () => document.querySelectorAll('#cab .cb big').forEach(g => { g.style.fontSize = ''; const k = g.closest('.cb'), cs = getComputedStyle(k), room = .85 * (k.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+      const r = document.createRange(); r.selectNodeContents(g); const w = r.getBoundingClientRect().width; if (w > room && room > 0) g.style.setProperty('font-size', (parseFloat(getComputedStyle(g).fontSize) * room / w).toFixed(2) + 'px', 'important'); });
+    new ResizeObserver(() => fitBig()).observe($('cab')); if (document.fonts) document.fonts.ready.then(() => fitBig());
+    // Keep the screen awake while autoplay runs. The Screen Wake Lock API needs https or localhost; over plain http (a LAN address) a tiny muted looping video does the same job.
+    let wakeLock = null, wakeVid = null, wantAwake = false;
+    async function keepAwake(on) {
+      wantAwake = on;
+      try {
+        if (!on) { if (wakeLock) { wakeLock.release(); wakeLock = null; } if (wakeVid) wakeVid.pause(); return; }
+        if (navigator.wakeLock) { if (!wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } return; }
+        if (!wakeVid) { wakeVid = document.createElement('video'); wakeVid.setAttribute('playsinline', ''); wakeVid.muted = true; wakeVid.loop = true; wakeVid.style.cssText = 'position:fixed;width:1px;height:1px;opacity:.01;pointer-events:none;left:0;top:0';
+          wakeVid.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAM3bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAmF0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAHZbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAAAoAAAAKABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABhG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAURzdGJsAAAAuHN0c2QAAAAAAAAAAQAAAKhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2Mi4yOC4xMDMgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALmF2Y0MBQsAK/+EAFmdCwArZHsBEAAADAAQAAAMAKDxImSABAAVoy4PLIAAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAABVIAAAAAAAAABhzdHRzAAAAAAAAAAEAAAAFAAAIAAAAABRzdHNzAAAAAAAAAAEAAAABAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAAFAAAAAQAAAChzdHN6AAAAAAAAAAAAAAAFAAACgwAAAAoAAAAKAAAACQAAAAkAAAAUc3RjbwAAAAAAAAABAAADZwAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjIuMTIuMTAzAAAACGZyZWUAAAKxbWRhdAAAAnAGBf//bNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjUgcjMyMjIgYjM1NjA1YSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjUgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0zIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxMTEgbWU9aGV4IHN1Ym1lPTcgcHN5PTEgcHN5X3JkPTEuMDA6MC4wMCBtaXhlZF9yZWY9MSBtZV9yYW5nZT0xNiBjaHJvbWFfbWU9MSB0cmVsbGlzPTEgOHg4ZGN0PTAgY3FtPTAgZGVhZHpvbmU9MjEsMTEgZmFzdF9wc2tpcD0xIGNocm9tYV9xcF9vZmZzZXQ9LTIgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAALZYiEBHyYoAA2I4AAAAAGQZo4CPqAAAAABkGaVAI+oAAAAAVBmmAQ9QAAAAVBmoA/1A=='; document.body.appendChild(wakeVid); }
+        if (wakeVid.paused) await wakeVid.play();
+      } catch (e) { console.warn('keep-awake unavailable', e); }
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wantAwake) keepAwake(true); });
+    // touch-screen multi-game ROMs (map.touch): the ROM runs the game, MK6TOUCHHOST plays the OS; none of the cabinet-key code below applies
+    if (map.touch) {
+      try { await MK6TOUCHPLAY.start({ vm, map, id, $, store, keepAwake }); fitBig(); } catch (e) { console.error(e); msg('Could not start <b>' + id + '</b>:<br><code>' + String(e.stack || e).replace(/</g, '&lt;') + '</code>'); return; }
+      if (!/ — Retro Pokies/.test(document.title)) document.title = rec.name + ' — Retro Pokies'; $('boot').remove(); fitMarquee(); return;
+    }
+    const lineKeys = map.lineKeys || { 1: 1, 5: 2, 10: 3, 15: 4, 20: 5 }, betKeys = map.betKeys || { 1: 14, 2: 13, 3: 12, 5: 11, 10: 10 };
+    const savedLines = store.get('lines-' + id), savedBet = store.get('bet-' + id);
+    const initialLines = (savedLines && (savedLines in lineKeys)) ? savedLines : Math.max(...Object.keys(lineKeys).map(Number));
+    const credits0 = store.get('credits-' + id) ?? Math.round(START_CENTS / denom0), betList = Object.keys(betKeys).map(Number).sort((a, b) => a - b);
+    const initialBet = (savedBet && (savedBet in betKeys)) ? savedBet : betList[betList.length - 1];   // max lines, max bet (a design choice; the ROM preselects the lowest bet)
+    // this browser's last save of the game (battery-backed memory image; js/mk6save.js), unless ?fresh. Every game is logged for it (vm.gameLog)
+    const save0 = q.has('fresh') && !RECALL ? null : await MK6SAVE.get(id).catch(() => null); vm.gameLog = [];
+    const host = new MK6HOST.Host(vm, { map, lines: initialLines, bet: initialBet, credits: store.get('credits-' + id) ?? Math.round(START_CENTS / denom0), limit: limitFor(denom0) });
+    // progressive jackpots: shown only when the ROM has levels; jackpot.js follows the ROM meters and saves them locally, a network provider can replace the store
+    const jackpot = RECALL ? { active: false } : new MK6JACKPOT.JackpotPool(vm, { key: 'mk6-jackpot-' + id });   // a recall's meters are the old game's: never saved
+    if (jackpot.active) {
+      const cells = [...document.querySelectorAll('#jackpots .jp')], money = c => '$' + (c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); let last = [];
+      // jackpot.js follows what the ROM shows: the level meter as the ROM read it at the start of a game, rounded as the ROM draws it, or its own "Jackpot: Major $900.00, Minor $10.00" line
+      const draw = () => { const v = jackpot.view(2); cells.forEach((el, k) => { el.hidden = !v[k]; if (!v[k]) return;
+        el.firstChild.textContent = v[k].name; const b = el.lastChild, t = money(v[k].cents); if (b.textContent !== t) { b.textContent = t; if (last[k] !== undefined && last[k] !== v[k].cents) { el.classList.remove('tick'); void el.offsetWidth; el.classList.add('tick'); } } last[k] = v[k].cents; }); fitJp(); };
+      // each counter is as wide as its value plus 50%, rounded up to a multiple of 50 px, or the multiple after that when less than 16 px would be left over (so it does not jump as the value ticks up), never wider than its share of the row
+      // each box: value width + 50%, rounded up to a multiple of 50 px, plus 50 more if that leaves under 16 px spare. When the row is wider than the marquee
+      // (Big Red at 1000 px: 250 + 200 in 448), the widest box steps down by 50 while it keeps 16 px spare, so the boxes stay on the 50 px steps instead of flex shrinking both
+      const fitJp = () => { const row = cells.filter(el => !el.hidden).map(el => { const r = document.createRange(); r.selectNodeContents(el.lastChild); const t = r.getBoundingClientRect().width, cs = getComputedStyle(el), need = t + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth) + 2; const b = Math.max(t * 1.5, need); let w = Math.ceil(b / 50) * 50; if (w - b < 16) w += 50;   /* less than 16 px of headroom: the next 50 */ return { el, need, w }; });
+        const box = $('jackpots'), avail = box.clientWidth - (parseFloat(getComputedStyle(box).columnGap) || 0) * (row.length - 1);
+        for (;;) { const sum = row.reduce((a, c) => a + c.w, 0); if (sum <= avail) break; const c = row.filter(c => c.w - 50 - c.need >= 16).sort((x, y) => y.w - x.w)[0]; if (!c) break; c.w -= 50; }
+        row.forEach(c => { c.el.style.boxSizing = 'border-box'; c.el.style.flex = '0 1 ' + c.w + 'px'; }); };
+      addEventListener('resize', fitJp);
+      jackpot.onChange(draw); draw(); $('jackpots').classList.add('on'); fitJp(); document.fonts.ready.then(fitJp); fitMarquee();
+    }
+    const STRICT_DENOM = q.has('strictdenom');
+    let denom = denom0, dust = store.get('dust-' + id) || 0; const START = () => Math.round(START_CENTS / denom);
+    // one wallet for every game (emu-wallet, in cents, $1000 when new): a game takes its credits from it at its own denomination, the cents under one
+    // credit kept as dust, and writes its money back whenever it changes (the stake of the game being played is out of it). A change made by another
+    // tab moves this game's credit by the difference once it is idle. A replay (RECALL) shows the old game's credit and never touches the wallet
+    const WALLET = 'wallet', avail = () => host.phase && host.cur ? host.credits - host.cur.cost : host.credits;
+    let walletSeen = null, walletStale = false;
+    const fromWallet = meter => { const p = store.get(WALLET), cents = Number.isFinite(p) && p >= 0 ? p : START_CENTS, c = Math.floor(cents / denom), d = c - avail();
+      host.credits += d; if (host.phase && host.before !== undefined) host.before += d; if (meter) vm.meters.set(0, (vm.meters.get(0) | 0) + d * denom);
+      dust = cents - c * denom; walletSeen = cents; };
+    const toWallet = () => { const m = avail() * denom + dust; if (m !== walletSeen) { walletSeen = m; store.set(WALLET, m); } };
+    if (!RECALL) addEventListener('storage', e => { if (e.key === 'emu-' + WALLET) walletStale = true; });
+    // RTP sets as the ROM names them (most games 3, Big Red 5); start on the highest unless ?rtp= or a saved choice picks another
+    const rtpSets = host.rtpSets(), best = host.bestRtpSet(rtpSets), wanted = +(RECALL && save0 && save0.variant || q.get('rtp') || store.get('rtp-' + id) || 0);
+    const variant = rtpSets.some(r => r.set === wanted) ? wanted : best;
+    if (rtpSets.length) $('rtp').replaceChildren(...rtpSets.map(r => new Option(r.pct.toFixed(2) + '%' + (r.set === best ? ' (best)' : ''), r.set)));
+    $('rtp').value = variant;
+    // a save made at another denomination or RTP set is dropped. Restored before the ROM's start-up (init), so it takes its own power-up path
+    const save = save0 && save0.v === MK6SAVE.V && save0.denom === denom0 && save0.variant === variant && save0.host ? save0 : null;
+    // a recall: the logged game, its host part and meters from its start (Host.spin), run as the ROM's Audit > 2.3 REPLAY GAME does (mk6sys vm.recall)
+    const rcl = RECALL && save0 && save0.v === MK6SAVE.V && Array.isArray(save0.log) && save0.log[save0.log.length - RECALL], recalled = rcl && rcl.done && !rcl.over && rcl.h && rcl.m ? rcl : null;
+    if (RECALL && !recalled) { q.delete('recall'); q.set('audit', '1'); location.replace('?' + q); return; }
+    if (recalled && recalled.d && recalled.d !== denom) { denom = recalled.d; vm.options.denom = denom; $('denom').value = denom; }   // a game played at another denomination replays at that one
+    if (!recalled && !RECALL && save0 && save0.v === MK6SAVE.V) vm.gameLog = MK6SAVE.carryLog(save0);   // the log of a game dropped for its denomination or RTP set stays; also on a plain reload (NVRAM recall survives a restart): a power-up the ROM does not take (gmc_initialise_game_log returns 0) must not empty it, one it takes replaces it with the saved log
+    if (recalled) { vm.gameLog = null; vm.recall = recalled; vm.meters = new Map(recalled.m); host.credits = recalled.h.credits; }
+    else if (save) { MK6SAVE.restore(vm, save); host.credits = save.host.credits; }
+    if (!RECALL) fromWallet(false);   // before init, which sets the ROM's credit meter from host.credits
+    host.init(map.lineIdx ?? 1, map.betIdx ?? 0, variant); EMUSOUND.install(vm, host);
+    // default denomination = the ROM's first enabled value (get_token_credit(0,1,i)); known only after init, so a game never played before restarts once at it
+    if (store.get('denom-' + id) == null) { const rd = MK6DENOM.forMap(map, vm).def; if (rd !== denom0 && store.get('credits-' + id) == null) { store.set('denom-' + id, rd); if (store.get('denom-' + id) === rd) { location.reload(); return; } } store.set('denom-' + id, denom0); }
+    // cabinet LEDs (button lamps, light show): only with a config saved from leds.html (localStorage mk6-leds). Without one nothing is
+    // loaded and step() skips it, so ordinary play is unchanged. Serial and PacDrive need a user gesture the first time: they start on the first click
+    let leds = null; { let lc = null; try { lc = JSON.parse(localStorage.getItem('mk6-leds')); } catch (e) {}
+      if (lc && lc.driver) (async () => { for (const f of ['leds', 'lightshow']) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'js/' + f + '.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+        const L = MK6LEDS, model = new L.LampModel(vm), drv = L.makeDriver(lc), out = new L.LampOutput(model, new L.Cabinet(lc, id), drv, { flash: lc.flash });
+        const ev = drv.pixels || drv.preset ? new MK6SHOW.HostEvents(host, new MK6SHOW.LightShow(drv, L.showConfig(lc))) : null; if (ev) ev.hookSounds(vm);
+        const go = () => out.start().then(() => { leds = { model, ev, out }; window.leds = leds; }).catch(e => { console.warn('LED output off: ' + e.message); if (/gesture|user activation|requestPort|requestDevice/i.test(e.message)) addEventListener('pointerdown', go, { once: true }); });
+        go(); })().catch(e => console.warn('LED output off', e)); }
+    if (recalled) { vm.meters = new Map(recalled.m); host.resume(recalled.h); host.say('AUDIT MODE'); }
+    else if (save) try { vm.meters = new Map(save.meters); host.resume(save.host); } catch (e) { console.error('resume failed', e); await MK6SAVE.del(id).catch(() => {}); q.set('fresh', '1'); location.replace('?' + q); return; }
+    else host.resetMessage('Memory Reset');   // the footer at a boot without a save
+    if (save && !recalled && !RECALL) fromWallet(true);   // resume put back the save's own credit and meters: the wallet's money wins
+    const A = window.QotnAudio; ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => A.init()));
+    const cv = $('screen'), cx = cv.getContext('2d'); window.vm = vm; window.host = host; window.jackpot = jackpot;
+
+    // ---- cabinet buttons (same markup/classes as the profile page) ----
+    if (savedLines) host.setLines(savedLines); if (savedBet) host.setBet(savedBet);
+    host.panel(host.credits, host.last ? host.last.cost : 0, host.last ? host.last.win : 0);
+    const LINES = host.LINES, BETS = host.BETS, SUIT_OF_BET = [0, 1, null, 2, 3];
+    const LASTLINE = LINES.filter(n => !(map.lineLabels || {})[n]).pop();   // RED / BLACK sit on the first and last plain line keys, not on a labelled one
+    LINES.forEach(n => { const b = document.createElement('button'); b.className = 'cb play'; b.dataset.n = n; const lbl = (map.lineLabels || {})[n];   // a play key that is not a line count (Outback Jack: 20 lines + the feature bet, 30 credits)
+      if (lbl) { b.classList.add('special'); b.innerHTML = `PLAY<big>${lbl.split(' ').join('<br>')}</big><small>${n} CREDITS</small>`; b.setAttribute('aria-label', 'Play ' + lbl + ', ' + n + ' credits a game'); }
+      else { const rt = host.keyText(lineKeys[n]), m = /^Play\s*(\d+)\s*(Ways?|Lines?)\b/i.exec(rt), r = /^Play\s*(REELS?\s*1(?:-\d)?)\b/i.exec(rt);   // the ROM's own key text (243 Ways, Reel Power reels)
+        const [big, unit] = m ? [m[1], m[2].toUpperCase()] : r ? [r[1].toUpperCase().replace(/^REELS?\s*/, ''), /-/.test(r[1]) ? 'REELS' : 'REEL'] : [n, n === 1 ? 'LINE' : 'LINES'];
+        b.innerHTML = `PLAY<big>${big}</big><small>${unit}</small>`; b.setAttribute('aria-label', `Play ${big} ${unit.toLowerCase()}`); } b.onclick = () => { if (host.setLines(n)) { store.set('lines-' + id, host.lines); spin(); } sync(); }; if (lbl) { $('slot').appendChild(b); $('slot').parentNode.classList.add('hasslot'); } else $('playrow').appendChild(b); });   // labelled keys go in the slot beside SPIN, plain line counts in the PLAY row   // as on the cabinet: a Play key picks the lines and starts the game
+    const PER_LINE = !$('playrow').querySelector('.cb.play small:last-child') || /LINE/.test($('playrow').querySelector('.cb.play small:last-child').textContent);   // a ways or Reel Power game's bet is not a bet per line
+    BETS.forEach((n, i) => { const b = document.createElement('button'); b.className = 'cb bet'; b.dataset.n = n; if (SUIT_OF_BET[i] != null && BETS.length === 5) b.classList.add('s' + SUIT_OF_BET[i]); const pl = PER_LINE ? ' per line' : ''; b.innerHTML = /^BET x\d/i.test(host.keyText(betKeys[n])) ? `BET<big>x${n}</big><small>MULTIPLIER</small>` : `BET<big>${n}</big><small>${n === 1 ? 'CREDIT' : 'CREDITS'}<span class="pl">${pl.toUpperCase()}</span></small>`; b.setAttribute('aria-label', `Bet ${n} credit${n === 1 ? '' : 's'}${pl}`); b.onclick = () => { host.setBet(n); store.set('bet-' + id, host.bet); sync(); }; $('betrow').appendChild(b); });   // Reel Power: the ROM labels its bet keys BET x1..x5
+    fitBig();
+    // every game has the cabinet's five BET and five PLAY cells (one layout for all): a game with fewer keys gets empty, hidden cells so its keys sit where every other game's do
+    for (const row of ['betrow', 'playrow']) for (let n = $(row).children.length; n < 5; n++) { const ph = document.createElement('button'); ph.className = 'cb ph';   /* not .play / .bet: the lamp and gamble code leaves it alone */ ph.style.visibility = 'hidden'; ph.disabled = true; ph.tabIndex = -1; ph.setAttribute('aria-hidden', 'true'); $(row).appendChild(ph); }
+    // ---- paytable: the ROM's own help screens (IMG_HELP_SCREEN_<n>) ----
+    const pages = []; for (let n = 1; vm.db.get(1, 'IMG_HELP_SCREEN_' + n); n++) pages.push(vm.db.get(1, 'IMG_HELP_SCREEN_' + n).index); let hp = 0;
+    const showHelp = async () => { const im = await vm.loadImage(pages[hp]); if (!im) return; const cv2 = $('helpcv'); cv2.width = im.w; cv2.height = im.h; cv2.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(im.rgba), im.w, im.h), 0, 0); $('hpage').textContent = (hp + 1) + '/' + pages.length; };
+    // games with help_func draw their own help on the game screen: the Paytable button is the GAME RULES key (next page; out after the last
+    // when the ROM gives a count), any other cabinet button or key only leaves help. Big Ben's help_scr_is_allowed refuses it. The pictures are the fallback
+    const romPages = host.romHelp(); if (!pages.length && !romPages) $('helpbtn').hidden = true;
+    const helpKey = () => { if (!romPages) { $('help').classList.toggle('open'); showHelp(); return; } if (host.help) host.helpNext(); else if (!host.helpEnter() && host.helpOld === 0) $('helpbtn').hidden = true; };   // help draws nothing (Mr Cashman, Touch Of Paradice): there is no help key there either
+    addEventListener('click', e => { if (host.help && e.target.closest('#cab button')) { e.stopPropagation(); e.preventDefault(); host.helpExit(); } }, true);
+    $('helpbtn').onclick = () => { if (romPages) helpKey(); else { $('help').classList.add('open'); showHelp(); } }; $('hclose').onclick = () => $('help').classList.remove('open');
+    $('hprev').onclick = () => { hp = (hp + pages.length - 1) % pages.length; showHelp(); }; $('hnext').onclick = () => { hp = (hp + 1) % pages.length; showHelp(); };
+    // ---- stats ----
+    const fresh = () => ({ creditsIn: 0, spins: 0, freeSpins: 0, wagered: 0, won: 0, freeWon: 0, wins: 0, biggest: 0, biggestMult: 0, biggestFeature: 0, features: 0, gambles: 0, gambleNet: 0 });
+    let S = Object.assign(fresh(), store.get('stats-' + id) || {}), seen = (save && !RECALL && save.seen) || null; if (!S.creditsIn) S.creditsIn = host.credits;
+    const fmt = n => Math.round(n).toLocaleString('en-US');
+    const renderStats = () => { const net = S.won - S.wagered;
+      const rows = [['Credits in', fmt(S.creditsIn)], ['Total bet', fmt(S.wagered)], ['Total won', fmt(S.won)], ['Won in free games', fmt(S.freeWon)], [net < 0 ? 'Net lost' : 'Net won', fmt(Math.abs(net)), net < 0 ? 'neg' : 'pos'],
+        ['Observed RTP', S.wagered ? (100 * S.won / S.wagered).toFixed(2) + '%' : '–'], ['Spins (paid / free)', fmt(S.spins) + ' / ' + fmt(S.freeSpins)], ['Features triggered', fmt(S.features)],
+        ['Winning spins', fmt(S.wins) + (S.spins ? ' (' + (100 * S.wins / S.spins).toFixed(1) + '%)' : '')], ['Biggest win', fmt(S.biggest)], ['Biggest win (× total bet)', S.biggestMult ? S.biggestMult.toFixed(1) + '×' : '–'], ['Biggest feature win', fmt(S.biggestFeature)],
+        ['Denomination', (denom >= 100 ? '$' + denom / 100 : denom + 'c') + ' / credit'], ['Gambles played', fmt(S.gambles)], ['Gamble net', fmt(S.gambleNet)], ['Balance', fmt(host.credits)]];
+      $('sl').innerHTML = rows.map(r => `<div><dt>${r[0]}</dt><dd class="${r[2] || ''}">${r[1]}</dd></div>`).join(''); };
+    let auto = false, autoAt = 0, autoTake = 0, autoLast = 0;   // AUTO timing: idle 1500 ms, 3000 ms between its SPIN presses, 2500 ms at the take-win prompt
+    const AUTO_IDLE = 1500, AUTO_COOLDOWN = 3000, AUTO_PROMPT = 2500;
+    // feature choice: the game flashes the keys it takes; pressing one of those buttons sends that key, as on the cabinet panel
+    const keyOf = b => b.classList.contains('play') ? lineKeys[b.dataset.n] : b.classList.contains('bet') ? betKeys[b.dataset.n] : undefined;
+    // a prompt that takes any panel key (Big Ben's chime: state 9, key wait mode 4 on keys 0-15): SPIN and autoplay send its first key, the key the scanner sends
+    const anyKey = () => { const hw = vm.hotspotWait; return host.phase === 'result' && hw && hw.mode === 4 && hw.keys && hw.keys.length >= 16 ? hw.keys[0] : undefined; };
+    document.addEventListener('click', e => {
+      const choice = host.choiceKeys(); if (!choice.length) return;
+      if (e.target.closest('#spin') && anyKey() !== undefined) { e.stopImmediatePropagation(); host.pressKey(anyKey()); sync(); return; }
+      if (e.target.closest('#spin') && choice.includes(0)) { e.stopImmediatePropagation(); host.pressKey(0); sync(); return; }   // key 0 is the SPIN / take-win key
+      const fk = e.target.closest('.cb.fkey');
+      if (fk) { const n = +fk.dataset.key; if (choice.includes(n)) { e.stopImmediatePropagation(); host.pressKey(n); sync(); } return; }
+      const b = e.target.closest('.cb.play, .cb.bet'), k = b && keyOf(b);
+      if (k === undefined || !choice.includes(k)) return;
+      e.stopImmediatePropagation(); host.pressKey(k); sync();
+    }, true);
+    // touches on the game screen: a touch prompt (Corrida De Toros pick) takes a touch on the boxes the game drew, as on the cabinet's touch screen
+    const screenXY = e => { const r = $('screen').getBoundingClientRect(); return [Math.floor((e.clientX - r.left) * 640 / r.width), Math.floor((e.clientY - r.top) * 480 / r.height)]; };
+    $('stage').addEventListener('pointerdown', e => { if (host.help) { e.preventDefault(); host.helpExit(); return; } const [x, y] = screenXY(e); if (host.touch(x, y) >= 0) { e.preventDefault(); sync(); } });
+    $('stage').addEventListener('pointermove', e => { const [x, y] = screenXY(e); $('stage').style.cursor = host.touchable(x, y) >= 0 ? 'pointer' : ''; });
+    // gamble: after a win the 1-line / 20-line keys become RED / BLACK and SPIN collects
+    document.addEventListener('click', e => { if (!host.gamble) return; const b = e.target.closest('.cb.play'), s = e.target.closest('#spin');
+      if (b) { e.stopImmediatePropagation(); if (!host.gamble.screen) { if (host.collect()) { playOn = true; playOnLines = +b.dataset.n; } }   /* take-win prompt: a Play key takes the win and plays that many lines */ else if (+b.dataset.n === LINES[0]) host.gambleChoose('red'); else if (+b.dataset.n === LASTLINE) host.gambleChoose('black'); sync(); }
+      else if (s && host.gamble.early && !host.gamble.busy) { e.stopImmediatePropagation(); host.gamble = null; host.pressKey(0); sync(); }   // SPIN while the win still counts up (state 10, no prompt yet) is the ROM's own take win: it ends the celebration and books the win, as panel key 0 does
+      else if (s) { e.stopImmediatePropagation(); const off = !host.gamble.screen; if (host.collect() && off) playOn = true; sync(); }   // SPIN at the take-win prompt is PLAY ON: take the win and play the next game
+      else { const t = e.target.closest('.cb.bet'); if (t) { e.stopImmediatePropagation(); const i = BETS.indexOf(+t.dataset.n); if (host.gamble.screen) { if (SUIT_KEY[i]) host.gambleChoose(SUIT_KEY[i]); } else if (host.collect()) betAfter = +t.dataset.n; sync(); } } }, true);
+    $('gamble').onclick = () => { if (host.gamble && !host.gamble.busy) { host.gambleStart(); sync(); } }; /* on the gamble screen GAMBLE toggles Full / Half */ const SUIT_KEY = ['H', 'D', null, 'C', 'S']; let gOn = false;
+    function fkeyBtn(n) { const b = document.createElement('button'); b.className = 'cb fkey'; b.dataset.key = n; const t = n === 7 ? 'FEATURE' : (host.keyText(n) || 'KEY ' + n).toUpperCase(); b.textContent = t; b.setAttribute('aria-label', t); b.disabled = true; $('fk').appendChild(b); return b; }
+    fkeyBtn(7);
+    function sync() {
+      if (auto !== wantAwake) keepAwake(auto);
+      // phone: the note acceptor pops up; it stays up while a note feeds in, so the note is seen going in
+      $('cab').classList.toggle('needcash', (!host.phase && !host.inFree && host.credits < host.cost) || ($('cab').classList.contains('needcash') && $('add').classList.contains('feed')));
+      const busy = !host.canChange();
+      // panel lamps from the ROM's lamp table (vm.lamps, gos_control 13); a key the ROM has not lit yet falls back to the selection.
+      // data-lamp is what the button shows: 1 steady lit, 0 dark, 2 / 3 flash. The cabinet panel lights a key at ROM state 0 and leaves it dark at 1, so 0 and 1 swap here
+      const LT = vm.lamps || {}, lampOf = k => k !== undefined && LT[k] ? [1, 0, 2, 3][LT[k].state & 3] : -1;
+      /* Pharohs Fortune's gamble screen (rom_gamble_screen): SPIN and GAMBLE flash and no play-line key does; the ROM then toggles the red / black / suit key lamps itself (0.5 s), so the panel follows its lamp table instead of the host's own gamble marks */
+      const romG = !!(host.gamble && host.gamble.screen) && lampOf(0) >= 2 && lampOf(15) >= 2 && !Object.values(lineKeys).some(k => lampOf(k) >= 2);
+      document.querySelectorAll('.cb.play').forEach(b => { const sel = +b.dataset.n === host.lines, st = lampOf(keyOf(b)); b.dataset.lamp = st >= 0 ? st : sel ? 1 : 0; b.classList.toggle('sel', sel && !host.phase); b.classList.toggle('selspin', sel && !!host.phase && !(host.gamble && host.gamble.screen)); b.disabled = busy; b.setAttribute('aria-pressed', sel); });
+      document.querySelectorAll('.cb.bet').forEach(b => { const sel = +b.dataset.n === host.bet, st = lampOf(keyOf(b)); b.dataset.lamp = romG && st >= 0 ? st : st === 2 || st === 3 ? st : sel ? 1 : 0;   /* steady state from the host's bet: the ROM only learns it at the start (betAfterStart), so its idle lamp marks the old bet */ b.classList.toggle('on', false); b.classList.toggle('sel', sel && !host.phase);   /* bet lamps as on the cabinet panel: the chosen bet lit, the others dark */ b.classList.toggle('selspin', +b.dataset.n === host.bet && !!host.phase && !(host.gamble && host.gamble.screen)); b.disabled = busy; b.setAttribute('aria-pressed', +b.dataset.n === host.bet); });
+      $('spin').disabled = !!host.phase && anyKey() === undefined && !host.choiceKeys().includes(0) && !freeCountUp(); { const st = lampOf(0); $('spin').dataset.lamp = st >= 0 ? st : (!host.phase && host.credits >= host.cost) || anyKey() !== undefined ? 1 : 0; }   /* ROM never sets key 0 (Outback Jack): the lamp defaults to steady, not a flash */ $('auto').classList.toggle('lit', auto); $('rtp').disabled = busy; $('denom').disabled = busy || (STRICT_DENOM && host.credits > 0); $('denom').title = STRICT_DENOM && host.credits > 0 ? 'Credit must be zero to change value' : '';
+      // every ROM carries the take-win prompt with its gamble, so the key shows from the start; it hides once the host finds the win prompt brings up no gamble screen
+      $('gamble').classList.toggle('nogamble', !host.canGamble());
+      $('gamble').disabled = !(host.gamble && !host.gamble.busy && host.canGamble()); { const st = lampOf(15); $('gamble').dataset.lamp = st >= 1 ? st : st < 0 && !$('gamble').disabled && !host.gamble.screen ? 3 : 0; }   /* GAMBLE is dark at the ROM's state 1, lights it at 0 and flashes it at 2 / 3 (slow at a win) */
+      document.querySelectorAll('.cb.bet').forEach(b => {
+        if (host.gamble) {
+          const sc = host.gamble.screen, ok = !sc || !!SUIT_KEY[BETS.indexOf(+b.dataset.n)];   /* take-win prompt: a bet key takes the win and selects that bet */
+          b.disabled = !ok || host.gamble.busy;
+          b.classList.toggle('on', sc && ok && !host.gamble.busy && !romG);
+        }
+      });
+      const gm = !!host.gamble; let relabelled = false; document.querySelectorAll('.cb.play').forEach(b => {
+        if (!b.dataset.html) b.dataset.html = b.innerHTML;
+        const first = +b.dataset.n === LINES[0], last = +b.dataset.n === LASTLINE;
+        if (gm) {
+          const sc = host.gamble.screen;
+          const want = sc ? (first ? '<big>RED</big>' : last ? '<big>BLACK</big>' : '') : b.dataset.html;
+          if (b.innerHTML !== want) { b.innerHTML = want; relabelled = true; }
+          b.disabled = !(sc && (first || last)) || host.gamble.busy;
+          b.classList.toggle('on', sc && (first || last) && !host.gamble.busy && !romG); b.dataset.lamp = romG && lampOf(keyOf(b)) >= 0 ? lampOf(keyOf(b)) : '';
+        } else if (b.innerHTML !== b.dataset.html) {
+          b.innerHTML = b.dataset.html; relabelled = true;
+        }
+      });
+      if (relabelled) fitBig();   // RED / BLACK and the restored labels take the 85% rule too
+      if (gm) {
+        $('spin').disabled = host.gamble.busy;
+        $('spin').textContent = host.gamble.screen ? 'COLLECT' : 'PLAY ON';   // at the take-win prompt SPIN takes the win and plays the next game
+        $('spin').classList.add('collect');
+      } else {
+        $('spin').classList.remove('collect'); document.querySelectorAll('.cb.play').forEach(b => b.classList.remove('on'));
+        if (['COLLECT', 'PLAY ON'].includes($('spin').textContent)) $('spin').textContent = $('spin').dataset.label || 'SPIN';
+      }
+      // panel lamps: buttons whose key the game is flashing blink; during a feature choice they are the ones to press
+      const choice = host.choiceKeys(), lamps = vm.lamps || {};
+      // FEATURE (key 7) and any other waited key that has no line / bet / SPIN button: lit from the ROM's lamp table like the other keys
+      for (const n of choice) if (n !== 0 && !$('fk').querySelector('[data-key="' + n + '"]') && !Object.values(lineKeys).includes(n) && !Object.values(betKeys).includes(n)) fkeyBtn(n);
+      $('fk').querySelectorAll('.cb.fkey').forEach(b => { const n = +b.dataset.key, st = lampOf(n); b.dataset.lamp = st >= 0 ? st : choice.includes(n) ? 2 : 0; b.disabled = !choice.includes(n); b.classList.toggle('flash', choice.includes(n) && st < 0); b.hidden = b.disabled && Object.values(lineKeys).includes(n); });   // a key that is also a play key (5 Dragons' EXTRA is key 7) has no idle FEATURE twin; it shows only while the ROM waits for that key
+      $('spin').dataset.lamp = choice.includes(0) ? Math.max(2, lampOf(0)) : $('spin').dataset.lamp;
+      document.querySelectorAll('.cb.play, .cb.bet').forEach(b => {
+        const k = keyOf(b), pick = choice.includes(k);
+        const fl = !!lamps[k] && (lamps[k].state === 2 || lamps[k].state === 3), own = true;   // line and bet keys flash by their own lamp (data-lamp)
+        b.classList.toggle('flash', pick && !(own && fl));   /* state 3 flashes too: Big Hearted's START FEATURE key 7 */
+        if (pick) b.disabled = false;
+      });
+      const usd = c => '$' + (c * denom / 100).toFixed(2); if (RECALL && vm.recallEnd) { $('hcr').textContent = usd(host.credits); $('hbet').textContent = usd(host.cost); $('hwin').textContent = usd(Math.round((vm.meters.get(2) | 0) / denom)); }   /* a recall's end: its end meters, whatever phase the host is left in (a gamble's ends in 'result') */
+      else { $('hcr').textContent = usd(host.phase && host.cur ? host.credits - host.cur.cost : host.credits + dust / denom);   /* the dust (cents under one credit after a denomination change) stays in the shown money */   /* the bet leaves the credit at once, as on the game's own panel */ $('hbet').textContent = usd(host.cost); $('hwin').textContent = host.phase ? (winHold ? usd(winHold.win) : winShown !== null ? usd(winShown) : '…') : usd(host.last ? host.last.win : 0); }
+    }
+    // a free game's win counting up (the ROM's win_inc task asleep between ticks, no prompt up): SPIN sends key 0, which the ROM takes as take win and ends that count-up (the credit ends the same)
+    const freeCountUp = () => host.phase === 'result' && host.inFree && !auto && !host.help && !vm.keyWait && !(vm.hotspotWait && vm.hotspotWait.mode !== 'log') && host.winValue() > 0 && (vm.live || []).some(t => t.name === 'win_inc' && t.state === 'sleeping');
+    function spin() {
+      // SPIN during a win's count-up (no prompt or choice up: those take the click first) sends key 0, which the ROM takes as take win and so cuts a long celebration short
+      if (host.phase === 'result' && !auto && !host.help && !vm.keyWait && !(vm.hotspotWait && vm.hotspotWait.mode !== 'log') && host.winValue() > 0 && (!host.inFree || freeCountUp())) { host.pressKey(0); sync(); return; }
+      if (host.phase || host.help) return; const before = host.credits, prevWin = host.last ? host.last.win : 0, r = host.spin();
+      // the ROM grows its jackpot levels from the bet itself (jackpot.js only follows the meters)
+      winHold = r && prevWin > 0 ? { win: prevWin, cols: new Map() } : null;   // the LCD keeps the last win until the second-last reel has stopped
+      winShown = null; winTexts = vm.display.windows.map(w => w.text);
+      if (!r) { $('live').textContent = 'Bet refused: not enough credits'; auto = false; sync(); return; }
+      seen = { before, cost: host.cost, games: host.gameNo | 0, gambles: host.gambles | 0, gnet: host.gambleNet | 0 }; sync();
+    }
+    function settle() {                                           // a spin just finished: book it
+      const w = host.last.win, fs = (host.gameNo | 0) - seen.games, fw = host.last.featureWin || 0; S.spins++; S.wagered += seen.cost; S.won += w; if (w) S.wins++; S.biggest = Math.max(S.biggest, w); S.biggestMult = Math.max(S.biggestMult, w / seen.cost);
+      if (fs > 0) { S.features++; S.freeSpins += fs; S.freeWon += fw; S.biggestFeature = Math.max(S.biggestFeature, fw); } S.gambles += (host.gambles | 0) - seen.gambles; S.gambleNet += (host.gambleNet | 0) - seen.gnet; store.set('stats-' + id, S); store.set('credits-' + id, host.credits); store.set('last-' + id, { win: w, cost: host.last.cost, stops: host.last.stops, denom }); seen = null; renderStats();
+      $('live').textContent = w ? 'Win ' + w + ' credits' : 'No win'; autoAt = performance.now() + AUTO_IDLE;
+    }
+    if (map.featureStops) $('testgrp').hidden = false;                // test menu: only for games with known trigger stops
+    $('testsel').onchange = e => { const v = e.target.value; e.target.value = ''; if (v !== 'feature' || host.phase) return;
+      if (host.credits < host.cost) { $('live').textContent = 'Insert credit first'; return; }
+      const before = host.credits, r = host.spin(host.featureStops()); if (r) { seen = { before, cost: host.cost, games: host.gameNo | 0, gambles: host.gambles | 0, gnet: host.gambleNet | 0 }; sync(); } };
+    $('spin').onclick = spin; $('auto').onclick = () => { auto = !auto; sync(); if (auto) { autoLast = performance.now(); spin(); } };
+    // any other panel key stops AUTO (the press still acts normally)
+    const autoOff = e => { if (auto && !e.target.closest('#auto')) { auto = false; sync(); } };
+    document.addEventListener('click', e => { if (e.target.closest && e.target.closest('.cb') && !e.target.closest('#auto')) autoOff(e); }, true);
+    addEventListener('keydown', e => { if (e.target.tagName !== 'SELECT' && !(e.target.closest && e.target.closest('#wmenu')) && [' ', 'g', 'G', 'e', 'E', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) autoOff(e); }, true);
+    // note acceptor & currency
+    const CURRENCY_NOTES = {
+      AUD: [
+        { v: 500, label: '$5' },
+        { v: 1000, label: '$10' },
+        { v: 2000, label: '$20' },
+        { v: 5000, label: '$50' },
+        { v: 10000, label: '$100' }
+      ],
+      USD: [
+        { v: 100, label: '$1' },
+        { v: 200, label: '$2' },
+        { v: 500, label: '$5' },
+        { v: 1000, label: '$10' },
+        { v: 2000, label: '$20' },
+        { v: 5000, label: '$50' },
+        { v: 10000, label: '$100' }
+      ]
+    };
+    let currency = store.get('currency') || 'AUD';
+    if (!CURRENCY_NOTES[currency]) currency = 'AUD';
+    $('currency').value = currency;
+    let note = store.get('note-' + currency) || (currency === 'USD' ? 2000 : 10000);
+
+    const updateNoteSelect = () => {
+      const opts = CURRENCY_NOTES[currency] || CURRENCY_NOTES.AUD;
+      $('note').innerHTML = opts.map(o => `<option value="${o.v}">${o.label}</option>`).join('');
+      if (!opts.some(o => o.v === note)) note = opts[opts.length - 1].v;
+      $('note').value = note;
+    };
+
+    const noteLabel = () => {
+      const num = note / 100;
+      $('notev').textContent = '$' + num + (noteMult(denom) !== 1 ? ' ×' + noteMult(denom) : '');
+      $('add').dataset.currency = currency;
+      $('add').dataset.note = note;
+      const b = $('add').querySelector('.bill');
+      b.dataset.v = '$' + num;
+      const vEl = b.querySelector('.val');
+      if (vEl) vEl.textContent = String(num);
+      const natEl = b.querySelector('.nat');
+      if (natEl) natEl.textContent = currency === 'USD' ? 'UNITED STATES OF AMERICA' : 'AUSTRALIA';
+      $('note').value = note;
+    };
+    updateNoteSelect();
+    noteLabel();
+    $('currency').onchange = e => {
+      currency = e.target.value;
+      store.set('currency', currency);
+      note = store.get('note-' + currency) || (currency === 'USD' ? 2000 : 10000);
+      updateNoteSelect();
+      noteLabel();
+    };
+    $('note').onchange = e => { note = +e.target.value; store.set('note-' + currency, note); noteLabel(); };
+    const insertNote = () => { const cents = Math.round(note * noteMult(denom)) + dust, nc = Math.floor(cents / denom); if (host.addCredits(nc)) { dust = cents - nc * denom; store.set('dust-' + id, dust); S.creditsIn += nc;   /* cents the denomination cannot buy (dust) ride on the next note: no money is lost or made */ const n = $('add'); n.classList.add('feed'); setTimeout(() => { n.classList.remove('feed'); sync(); }, 1100); store.set('credits-' + id, host.credits); sync(); } };
+    $('add').onclick = insertNote;
+    // Sound: speaker icon toggles mute, the slider sets the master volume; both persist. Dragging above 0 unmutes; the icon shows muted at 0.
+    const soundUI = () => { const off = A.muted || A.volume === 0; $('mute').setAttribute('aria-pressed', String(off)); $('mute').title = $('mute').ariaLabel = off ? 'Unmute sound' : 'Mute sound'; $('vol').value = A.volume; };
+    $('mute').onclick = () => { A.setMuted(!A.muted); store.set('muted', A.muted); soundUI(); };
+    $('vol').oninput = () => { const v = Number($('vol').value); A.setVolume(v); if (v > 0 && A.muted) { A.setMuted(false); store.set('muted', false); } store.set('volume', v); soundUI(); };
+    { const v = store.get('volume'); if (typeof v === 'number') A.setVolume(v); if (store.get('muted')) A.setMuted(true); soundUI(); }
+    $('denom').value = denom;
+    $('denom').onchange = async e => {                                  // keep the player's money: new credits = whole credits at the new unit, the remainder is carried as cents ("dust")
+      const nd = +e.target.value; if (!host.canChange() || nd === denom || (STRICT_DENOM && host.credits > 0)) { e.target.value = denom; if (host.credits > 0) host.say('Credit must be zero to change value'); return; }   // cabinet rule, opt-in (?strictdenom=1): tests/browser_play.py changes denomination with credit
+      const total = host.credits * denom + dust, r = denom / nd; host.credits = Math.floor(total / nd); dust = total - host.credits * nd;
+      for (const k of ['wagered', 'won', 'biggest']) S[k] = Math.round(S[k] * r);
+      denom = nd; vm.options.denom = nd; host.limit = limitFor(nd); vm.meters.set(0, host.credits * nd); host.panel(host.credits, 0, 0); host.last = null;
+      store.set('bet-' + id, Math.max(...Object.keys(betKeys).map(Number)));   // max bet, as at a first start (the ROM keeps the bet in cents, no key matches, and selects the lowest bet key). (The last-game recall needs the save, which is bound to the denomination: not done)
+      store.set('denom-' + id, nd); store.set('denom-last', nd); store.set('dust-' + id, dust); store.set('credits-' + id, host.credits); store.set('stats-' + id, S); renderStats(); sync();
+      // the ROM draws its denomination box ("5c GAME", "$100 Buys 2000 Credits") once at start-up, so restart it as a machine does after a denomination change
+      // the saved game (ROM RAM, option block, bet in cents) belongs to the old denomination: restoring it at the new one is what leaves the game at "INSERT MORE CREDITS or CHANGE BET".
+      // So drop it and start fresh: the player's money (credits-<id>, dust-<id> above) is put back as notes at the new value on the first frame
+      denomChanging = true; try { await MK6SAVE.put(id, MK6SAVE.demote(MK6SAVE.snapshot(vm, { denom: denom0, variant }))); } catch (err) {}   // the game log stays for the recall pages (each entry has its denomination), the live game goes
+      if (q.has('fresh')) { q.delete('fresh'); location.replace('?' + q); } else location.reload();   // ?fresh would drop the save just written (the carried log and money)
+    };
+    $('rtp').onchange = e => { store.set('rtp-' + id, +e.target.value); location.search = '?game=' + id + '&rtp=' + e.target.value; };
+    $('copydebug').onclick = async () => {
+      const g = vm.tasks[0] || {};
+      const regs = {};
+      for (let i = 0; i < 16; i++) regs['r' + i] = '0x' + (vm.cpu.r[i] >>> 0).toString(16);
+      regs.pc = '0x' + (vm.cpu.pc >>> 0).toString(16);
+      regs.pr = '0x' + (vm.cpu.pr >>> 0).toString(16);
+      regs.sr = '0x' + (vm.cpu.sr >>> 0).toString(16);
+      regs.g_pc = g.ctx ? '0x' + (g.ctx.pc >>> 0).toString(16) : null;
+      regs.g_pr = g.ctx ? '0x' + (g.ctx.pr >>> 0).toString(16) : null;
+      const memDump = {};
+      if (map.state) memDump.state = vm.mem.r32(map.state);
+      if (map.win) memDump.winWord = vm.mem.r32(map.win);
+      if (map.freeCount) memDump.freeCount = vm.mem.r32(map.freeCount);
+      if (map.freeFlag) memDump.freeFlag = vm.mem.r32(map.freeFlag);
+      if (map.stopBuf) memDump.stopBuf = [0, 1, 2, 3, 4].map(i => vm.mem.r32(map.stopBuf + 4 * i));
+      const info = {
+        timestamp: new Date().toISOString(),
+        game: id,
+        denom,
+        stateVar: memDump.state,
+        host: {
+          phase: host.phase,
+          credits: host.credits,
+          lines: host.lines,
+          bet: host.bet,
+          cost: host.cost,
+          last: host.last,
+          gamble: host.gamble,
+          inFree: host.inFree,
+          fgBase: host.fgBase,
+          fgTot: host.fgTot,
+          held: host.held,
+          heldShown: host.heldShown,
+          primed: host.primed,
+          frames: host.frames
+        },
+        keyWait: vm.keyWait,
+        liveTasks: (vm.live || []).map(t => ({ name: t.name, state: t.state, prio: t.prio, pc: t.ctx ? '0x' + (t.ctx.pc >>> 0).toString(16) : null })),
+        recentSyscalls: (vm.recent || []).slice(-15),
+        registers: regs,
+        memory: memDump,
+        stats: S
+      };
+      const text = JSON.stringify(info, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        $('copydebug').textContent = 'Copied!';
+      } catch (e) {
+        prompt('Copy debug info:', text);
+        $('copydebug').textContent = 'Copied!';
+      }
+      setTimeout(() => { $('copydebug').textContent = 'Copy debug'; }, 2000);
+    };
+    $('sreset').onclick = () => { if (!confirm('Reset this game\'s stats and set the wallet (every game\'s credit) back to $' + START_CENTS / 100 + '?')) return; S = fresh(); store.set(WALLET, START_CENTS); fromWallet(true); S.creditsIn = host.credits; store.set('stats-' + id, S); store.set('dust-' + id, 0); host.panel(avail(), host.cost, 0); store.set('credits-' + id, host.credits); renderStats(); sync(); };
+    // ---- game recall: the list (live page) and the replay (?recall=N, inputs off until the game has ended, then any key goes back to the list) ----
+    const ORD = n => n === 1 ? 'Last' : n + (n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+    const replayable = e => !!(e && e.done && !e.over && e.h && e.m && e.end);
+    let auSel = 1;
+    function auDraw() {
+      const L = vm.gameLog || [], rows = [];
+      for (let n = 1; n <= 10; n++) { const e = L[L.length - n], d = (e && e.d) || denom;
+        if (!replayable(e)) { rows.push(`<tr class="na${n === auSel ? ' sel' : ''}" data-n="${n}"><td>${ORD(n)}</td><td colspan="3">Game not available</td></tr>`); continue; }
+        const M = new Map(e.end), cr = c => Math.round((c | 0) / d);   // the meters as the game ended (cents): credit after the win, and the win
+        rows.push(`<tr${n === auSel ? ' class="sel"' : ''} data-n="${n}"><td>${ORD(n)}</td><td>${cr(M.get(0))}</td><td>${e.h.lastCost | 0}</td><td>${cr(M.get(2))}</td></tr>`); }
+      $('aulist').innerHTML = rows.join(''); $('aureplay').disabled = $('aumt').disabled = !replayable(L[L.length - auSel]);
+    }
+    // VIEW GAME METERS (the audit menu's second page): the meters before the game (its start), as it ended and before the next game (the next entry's start, or now)
+    const MT = [['Turnover', 0x14, 1], ['Total Win', 0x13, 1], ['Credit', 0, 1], ['Games Played', 0x1c, 0]];
+    function auMeters() {
+      const L = vm.gameLog || [], e = L[L.length - auSel]; if (!replayable(e)) return auList(); const nx = L[L.length - auSel + 1];
+      const cols = [new Map(e.m), new Map(e.end), nx && nx.m ? new Map(nx.m) : vm.meters], f = (M, id, money) => money ? '$' + ((M.get(id) | 0) / 100).toFixed(2) : String(M.get(id) | 0);
+      $('aumeters').innerHTML = MT.map(([n, id, c]) => `<tr><td>${n}</td>${cols.map(M => `<td>${f(M, id, c)}</td>`).join('')}</tr>`).join('');
+      $('autitle').textContent = (auSel === 1 ? 'LAST' : ORD(auSel).toUpperCase() + ' LAST') + ' GAME METERS' + (e.t ? ' ' + new Date(e.t).toLocaleString() : ''); $('audit').classList.add('mt');
+    }
+    const auList = () => { $('audit').classList.remove('mt'); $('autitle').textContent = 'GAME REPLAY'; };
+    // SET PAUSING (the replay holds at the win-pending point until a key): kept for this browser, passed to the replay as &pause
+    let auPause = !!store.get('recall-pause'); const pauseLbl = () => $('aupause').textContent = 'Set pausing: ' + (auPause ? 'YES' : 'NO'); pauseLbl();
+    const auTogglePause = () => { auPause = !auPause; store.set('recall-pause', auPause); pauseLbl(); };
+    const auOpen = () => { if (RECALL || host.phase || host.help) return; auList(); auDraw(); $('audit').classList.add('open'); };
+    const auClose = () => $('audit').classList.remove('open');
+    const auReplay = async () => { const L = vm.gameLog || []; if (!replayable(L[L.length - auSel])) return; await autosave(true); q.delete('audit'); q.delete('fresh'); q.set('recall', auSel); if (auPause) q.set('pause', '1'); else q.delete('pause'); location.href = '?' + q; };
+    $('audbtn').onclick = auOpen; $('auclose').onclick = auClose; $('aureplay').onclick = auReplay; $('aumt').onclick = auMeters; $('aumtback').onclick = auList; $('aupause').onclick = auTogglePause;
+    $('aulist').onclick = e => { const r = e.target.closest('tr'); if (r) { auSel = +r.dataset.n; auDraw(); } };
+    $('aulist').ondblclick = auReplay;
+    const toList = () => { q.delete('recall'); q.delete('pause'); q.set('audit', '1'); location.href = '?' + q; };
+    let rcEnd = 0;   // frames since the replayed game's end; the prompt shows once its win has been presented
+    const rcTitle = 'AUDIT MODE · ' + (RECALL === 1 ? 'LAST GAME REPLAY' : ORD(RECALL).toUpperCase() + ' LAST GAME REPLAY');
+    if (RECALL) {
+      $('audbtn').disabled = true; $('rcbar').textContent = rcTitle; $('rcbar').classList.add('on');
+      vm.recallPause = q.has('pause');
+      const block = e => { if (e.target.closest && e.target.closest('#topbar')) return; e.stopImmediatePropagation(); e.preventDefault(); if (e.type === 'click') return;
+        if (rcEnd > 90 || e.key === 'Escape') toList(); else if (vm.recallPaused) { vm.recallPaused = false; $('rcbar').textContent = rcTitle; } };
+      addEventListener('keydown', block, true); ['pointerdown', 'click'].forEach(t => addEventListener(t, block, true));
+    }
+    addEventListener('keydown', e => {
+      if (!$('audit').classList.contains('open')) return; e.stopImmediatePropagation(); e.preventDefault();
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { auSel = e.key === 'ArrowDown' ? Math.min(10, auSel + 1) : Math.max(1, auSel - 1); auDraw(); if ($('audit').classList.contains('mt')) auMeters(); }
+      else if (e.key === 'Enter') auReplay(); else if (e.key === 'Escape') { if ($('audit').classList.contains('mt')) auList(); else auClose(); }
+      else if (e.key === 'm' || e.key === 'M') auMeters(); else if (e.key === 'p' || e.key === 'P') auTogglePause();
+    }, true);
+    addEventListener('keydown', e => {
+      if (e.target.tagName === 'SELECT') return; if (e.key.startsWith('Arrow')) e.preventDefault();   // bet/lines keys must not scroll the page
+      const k = e.key, li = LINES.indexOf(host.lines), bi = BETS.indexOf(host.bet);
+      if (host.help && k !== 'h' && k !== 'H') { e.preventDefault(); host.helpExit(); return; }
+      if (host.gamble && host.gamble.screen) {
+        if (k === 'r' || k === 'R') { host.gambleChoose('red'); sync(); return; }
+        if (k === 'b' || k === 'B') { host.gambleChoose('black'); sync(); return; }
+        if (k >= '1' && k <= '4') { host.gambleChoose(['H', 'D', 'C', 'S'][+k - 1]); sync(); return; }
+        if (k === ' ') { e.preventDefault(); const off = !host.gamble.screen; if (host.collect() && off) playOn = true; sync(); return; }   // as SPIN: PLAY ON at the prompt, COLLECT on the gamble screen
+      }
+      if (((k === 'f' || k === 'F') && !e.altKey || (k === 'Enter' && e.altKey)) && fsOk) { e.preventDefault(); toggleFull(); return; }   // F or Alt+Enter
+      if ((k === 'e' || k === 'E') && host.choiceKeys().includes(7)) { host.pressKey(7); sync(); return; }   // Feature key (7) at a feature prompt
+      if (k === ' ' && host.phase && host.choiceKeys().includes(0)) { e.preventDefault(); host.pressKey(0); sync(); return; }
+      if ((k === 'g' || k === 'G') && !$('gamble').disabled) $('gamble').click(); else if (k === ' ') { e.preventDefault(); spin(); } else if (k === 'Enter') insertNote();
+      else if (k === 'ArrowLeft') { host.setLines(LINES[Math.max(0, li - 1)]); store.set('lines-' + id, host.lines); sync(); } else if (k === 'ArrowRight') { host.setLines(LINES[Math.min(LINES.length - 1, li + 1)]); store.set('lines-' + id, host.lines); sync(); }
+      else if (k === 'h' || k === 'H') helpKey(); else if (k === 'ArrowUp') { host.setBet(BETS[Math.min(BETS.length - 1, bi + 1)]); store.set('bet-' + id, host.bet); sync(); } else if (k === 'ArrowDown') { host.setBet(BETS[Math.max(0, bi - 1)]); store.set('bet-' + id, host.bet); sync(); }
+    });
+    // ---- frame loop ----
+    // game time follows the clock, not the monitor's refresh rate: one VM frame (16.535 ms of VM time, half the 33.07 ms flyback, see mk6sys
+    // vm.frame) per 16.535 ms of real time; at most 4 frames per refresh after a stall
+    const FRAME_MS = 33.07 / 2; let busy = false, lastT = 0, acc = 0, playOn = false, playOnLines = 0, betAfter = 0;
+    // Speed multiplier: the emulation always advances in whole 16.535 ms frames on its own virtual clock (vm.now), so running several frames per screen refresh
+    // changes how fast the game plays in real time, not what it does. Intermediate frames are not drawn; a time budget keeps the page responsive.
+    // The slider's four notches are 1x, 2x, 4x and 8x
+    const SPEEDS = [1, 2, 4, 8]; let speed = 1;   // every game starts at 1x (not remembered: a reload or a new game from the list is back to 1x, as is a feature start)
+    const speedText = () => speed + '×';
+    const showSpeed = () => { $('speed').value = SPEEDS.indexOf(speed); $('speed').setAttribute('aria-valuetext', speedText()); };
+    $('speed').oninput = () => { speed = SPEEDS[+$('speed').value] ?? 1; showSpeed(); }; showSpeed();
+    let lampSig = '';
+    // Screenshot button: the marquee, game screen and button panel are re-drawn by the browser itself (SVG foreignObject with the page CSS, fonts and images inlined)
+    // into one PNG on the clipboard. Plain http pages have no clipboard API: then the PNG is downloaded instead.
+    const dataUrl = async u => { if (/^data:/.test(u)) return u; const bl = await (await fetch(u)).blob(); return new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(bl); }); };
+    const inlineUrls = async css => { const seen = new Map(), re = /url\(\s*(['"]?)([^)'"]+?)\1\s*\)/g; for (const m of css.matchAll(re)) if (!/^data:|^#/.test(m[2]) && !seen.has(m[2])) seen.set(m[2], null);
+      await Promise.all([...seen.keys()].map(async u => { try { seen.set(u, await dataUrl(new URL(u, location.href).href)); } catch (e) { seen.set(u, u); } }));
+      return css.replace(re, (all, q, u) => seen.get(u) ? 'url("' + seen.get(u) + '")' : all); };
+    async function pageShot() {
+      const els = ['marquee', 'bezel', 'cab'].map($), W = Math.round(els[0].getBoundingClientRect().width), live = [...els.map(e => [...e.querySelectorAll('*')])].flat();
+      let css = ''; for (const sh of document.styleSheets) { try { for (const r of sh.cssRules) css += r.cssText + '\n'; } catch (e) { } }
+      css = await inlineUrls(css);
+      const wrap = document.createElement('div'); wrap.id = 'app'; wrap.style.cssText = 'width:' + W + 'px;max-width:none;padding:10px;margin:0;background:#0b0704;box-sizing:content-box;color:#f4e7c8;font:14px/1.4 system-ui,-apple-system,\'Segoe UI\',sans-serif';
+      for (const e of els) { const c = e.cloneNode(true); c.style.width = Math.round(e.getBoundingClientRect().width) + 'px'; c.style.maxWidth = 'none'; wrap.appendChild(c); }
+      wrap.querySelectorAll('#crtgl, .art ~ script, #topbar, #notes').forEach(n => n.remove());   // no Games / Full screen buttons or shortcut help in the picture
+      const cv0 = wrap.querySelector('#screen'); if (cv0) { const im = new Image(); im.src = $('screen').toDataURL('image/png'); im.style.cssText = 'width:100%;height:100%;display:block'; cv0.replaceWith(im); }
+      for (const n of wrap.querySelectorAll('[style*="url("]')) n.setAttribute('style', await inlineUrls(n.getAttribute('style')));
+      wrap.querySelectorAll('*').forEach(n => { if (n.tagName === 'BUTTON' || n.tagName === 'SELECT') n.removeAttribute('title'); });
+      const nt = $('notes'), cut = nt ? Math.round(nt.getBoundingClientRect().height + parseFloat(getComputedStyle(nt).marginTop) + parseFloat(getComputedStyle(nt).marginBottom)) : 0,
+        H = els.reduce((n, e) => n + Math.round(e.getBoundingClientRect().height), 0) - cut + 20 + 12 * 2 + 4, html = new XMLSerializer().serializeToString(wrap);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W + 20}" height="${H}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style>${css.replace(/</g, '\\3c ')}\nbody{margin:0}</style>${html}</div></foreignObject></svg>`;
+      const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); await img.decode();
+      const out = document.createElement('canvas'); out.width = W + 20; out.height = H; out.getContext('2d').drawImage(img, 0, 0);
+      return new Promise(r => out.toBlob(r, 'image/png'));
+    }
+    $('shotbtn').onclick = async () => {
+      const b = $('shotbtn'), t0 = b.textContent; b.disabled = true; b.textContent = 'Capturing…';
+      try {
+        const blob = await pageShot();
+        let copied = false;
+        if (navigator.clipboard && window.ClipboardItem) { try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]); copied = true; } catch (e) { console.warn('clipboard refused', e); } }
+        if (copied) b.textContent = 'Copied!';
+        else {   // no clipboard API here (plain http) or it was refused: show the picture to right-click > Copy image, with a download link
+          const u = URL.createObjectURL(blob), o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:60;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;overflow:auto';
+          o.innerHTML = '<img style="max-width:100%;max-height:80vh;border:2px solid #5c3d1c"><div style="color:#f4e7c8;font-size:13px">Right-click the picture and choose Copy image (or long-press on a phone). <a class="btnlink" download="' + id + '.png">Download</a> <button class="btnlink">Close</button></div>';
+          o.querySelector('img').src = u; o.querySelector('a').href = u; const close = () => { o.remove(); URL.revokeObjectURL(u); }; o.querySelector('button').onclick = close; o.onclick = e => { if (e.target === o) close(); }; document.body.appendChild(o); b.textContent = 'Done'; }
+      } catch (e) { console.error(e); b.textContent = 'Failed'; }
+      setTimeout(() => { b.textContent = t0; b.disabled = false; }, 1800);
+    };
+    let winHold = null;
+    // the ROM counts its own WIN meter up on screen (_drawtextDC: "1" and "$0.01", then 25 credits a tick): the LCD follows the last amount it drew,
+    // a window whose text changed this game and reads 0 to the game's total (the credit meter reads more); no such text, the LCD shows the total at the end
+    let winShown = null, winTexts = [];
+    function trackWin() {
+      if (!host.phase || winHold) return;
+      if (host.gamble && host.gamble.screen || host.gambleFrom !== undefined) { const v = host.gamble && host.gamble.screen ? host.gambleWin() : winShown; if (v !== null && v !== winShown) { winShown = v; $('hwin').textContent = '$' + (v * denom / 100).toFixed(2); } return; }   // gambling: the LCD follows the ROM's amount, and keeps it to the game's end
+      const W = vm.display.windows, tot = host.winValue(); let v = null;
+      for (let i = 0; i < W.length; i++) { const t = W[i].text; if (t === winTexts[i]) continue; winTexts[i] = t;
+        const m = /^\s*(\$)?([\d,]+)(?:\.(\d\d))?\s*$/.exec(t || ''); if (!m || !m[1] !== !m[3]) continue;
+        const n = m[1] ? Math.round((+m[2].replace(/,/g, '') * 100 + +m[3]) / (vm.options.denom || 1)) : +m[2].replace(/,/g, ''); if (n <= tot) v = n; }
+      if (v !== null && v !== winShown) { winShown = v; $('hwin').textContent = '$' + (v * denom / 100).toFixed(2); }
+    }
+    function trackReels() {         // a reel column (items sharing an x) has stopped when it moved and then kept the same y positions for 4 frames
+      if (!winHold) return; if (host.phase !== 'spinning') { winHold = null; sync(); return; }
+      const cols = new Map(); for (const o of vm.display.items) if (o.visible && o.scene === undefined && o.prio >= 0 && o.img) { const l = cols.get(o.x) || []; l.push(o.y); cols.set(o.x, l); }
+      let stopped = 0; for (const [x, l] of cols) { const sig = l.sort((p, q) => p - q).join(), c = winHold.cols.get(x) || { sig, same: 0, moved: false };
+        if (sig !== c.sig) { c.sig = sig; c.same = 0; c.moved = true; } else c.same++; winHold.cols.set(x, c); if (c.moved && c.same >= 4) stopped++; }
+      if (cols.size >= 3 && stopped >= cols.size - 1) { winHold = null; sync(); }
+    }
+    let wasFree = false;
+    function step() { const was = host.phase; host.frame(); if (leds) { leds.model.poll(); if (leds.ev) leds.ev.watch(); }   // cabinet LEDs, opt-in
+    if (RECALL && vm.recallEnd) {   // the meters are the game's end ones (mk6sys): the LCD shows its credit after the win and its win, as the ROM's replay does
+      host.credits = Math.round((vm.meters.get(0) | 0) / denom); if (host.last) host.last.win = Math.round((vm.meters.get(2) | 0) / denom); if (rcEnd++ % 30 === 0) sync(); }
+    if (rcEnd === 90) $('rcbar').textContent = 'Press any key to return to Game Replay menu';
+    if (vm.recallPaused && $('rcbar').textContent === rcTitle) $('rcbar').textContent = 'Press any key to continue replay'; trackReels(); trackWin(); if (host.inFree && !wasFree) { if (auto) { auto = false; sync(); } if (speed > 1) { speed = 1; showSpeed(); } } wasFree = host.inFree;   // autoplay ends and speed drops to 1x when a feature starts
+    { const sig = (vm.lampSeq | 0) + ':' + host.choiceKeys().join(); if (sig !== lampSig) { lampSig = sig; sync(); } } if (host.gamble || gOn) { gOn = !!host.gamble; sync(); } if (was && !host.phase && seen) { settle(); sync(); }
+    if (!RECALL) { if (walletStale && !host.phase) { walletStale = false; fromWallet(true); host.panel(host.credits, host.last ? host.last.cost : 0, host.last ? host.last.win : 0); sync(); } toWallet(); } autosave(); }
+    // save once the game has stopped moving (a state, a prompt, a gamble round, the credit) for SAVE_QUIET_MS, at least every SAVE_MAX_MS while it keeps
+    // moving, and always when the page is hidden or closed; not while a power-up replays the logged game (the last save holds it). Saving on every move
+    // would write about 3.6 snapshots a game (5 Dragons); waiting for quiet gives about one
+    const SAVE_QUIET_MS = 3000, SAVE_MAX_MS = 30000;
+    let saveSig = '', denomChanging = false, saveDirty = false, saveMoved = 0, savedAt = 0;
+    function autosave(force) {
+      if (vm.replay || RECALL || denomChanging) return; const e = vm.gameLog[vm.gameLog.length - 1], g = host.gamble, now = performance.now();
+      const sig = [host.phase, vm.mem.r32(host.map.state), !!vm.keyWait, g ? g.n + ':' + g.screen : '', host.gameNo | 0, host.credits, e ? e.recs.length : 0].join();
+      if (sig !== saveSig) { saveSig = sig; saveMoved = now; if (!saveDirty) { saveDirty = true; if (now - savedAt > SAVE_MAX_MS) savedAt = now; } }   // the first move after a save starts the SAVE_MAX_MS clock
+      if (!force && (!saveDirty || (now - saveMoved < SAVE_QUIET_MS && now - savedAt < SAVE_MAX_MS))) return;
+      saveDirty = false; savedAt = now;
+      return MK6SAVE.put(id, MK6SAVE.snapshot(vm, { host: host.saved(), seen, denom, variant })).catch(() => {});
+    }
+    addEventListener('pagehide', () => autosave(true));
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') autosave(true); });   // phones often close a hidden tab without a pagehide
+    async function frame(t) {
+      t = t || performance.now(); acc = Math.min(acc + (lastT ? t - lastT : FRAME_MS) * speed, 4 * speed * FRAME_MS); lastT = t;
+      if (!busy) { busy = true; try { let n = 0; const t0 = performance.now(); while (acc >= FRAME_MS) { acc -= FRAME_MS; n++; step(); if (speed > 1 && performance.now() - t0 > 12) { acc = 0; break; } } if (!n) return void requestAnimationFrame(frame); const px = await MK6RENDER.compose(vm); cx.putImageData(new ImageData(px, 640, 480), 0, 0); if (window.QotnCRT) QotnCRT.draw(); } finally { busy = false; } }
+      if (betAfter && !host.phase) { if (host.setBet(betAfter)) store.set('bet-' + id, host.bet); betAfter = 0; sync(); }   // bet key at the take-win prompt: the win is taken, now the bet
+      if (playOn && !host.phase) { playOn = false; if (playOnLines && host.setLines(playOnLines)) store.set('lines-' + id, host.lines); playOnLines = 0; spin(); }
+      { const mh = host.map.pickHint, on = !!mh && host.phase === 'result' && vm.mem.r32(host.map.state) === (host.map.pickState || 17) && !!vm.keyWait && vm.keyWait.keys.length > 1; /* a map's pickHint: shown under the screen while the ROM waits for the player's pick (data-driven) */ if (on !== $('pickhint').classList.contains('on')) { $('pickhint').textContent = on ? mh : ''; $('pickhint').classList.toggle('on', on); } }
+      host.autoHuman = true; if (auto && host.phase && (host.inFree || (vm.keyWait && host.featureWait()))) { auto = false; sync(); }   // AUTO stops at a feature trigger / free-game start: the player starts and watches it
+      host.autoKeys = auto;   // AUTO answers the ROM's key prompts itself (host frame), after the usual pause
+      if (auto && !host.phase && performance.now() > autoAt && performance.now() > autoLast + AUTO_COOLDOWN) { autoLast = performance.now(); spin(); }
+      // autoplay at the take-win prompt presses PLAY ON, and at an any-key prompt its key, after the usual pause (a real cabinet has no autoplay: online play only)
+      if (auto && (anyKey() !== undefined || (host.gamble && !host.gamble.screen && !host.gamble.busy))) { if (!autoTake) autoTake = performance.now() + AUTO_PROMPT; else if (performance.now() > autoTake) { autoTake = 0; if (!host.gamble) host.pressKey(anyKey()); else if (host.collect()) playOn = true; sync(); } } else autoTake = 0;
+      lampTick(); requestAnimationFrame(frame);
+    }
+    // the cabinet's lamp clock: fast on 430 of 760 ms, slow on 760 of 1520 ms, one clock (each slow edge on a fast on-edge); no flashing for reduced motion
+    function lampTick() { const still = lampTick.still ??= matchMedia('(prefers-reduced-motion:reduce)').matches, t = performance.now(), d = document.documentElement.dataset, ff = still || t % 760 < 430 ? '1' : '0', fs = still || t % 1520 < 760 ? '1' : '0'; if (d.ff !== ff) d.ff = ff; if (d.fs !== fs) d.fs = fs; }
+    // restore the last result after a reload: reels as they stopped, win on the LCD and the game's own panel (same denomination only: a stored win is in credits)
+    if (!RECALL) { const lw = store.get('last-' + id); if (lw && lw.denom === denom && Array.isArray(lw.stops) && lw.stops.length) { try { host.show(lw.stops); host.last = { win: lw.win | 0, cost: lw.cost | 0, stops: lw.stops, featureWin: 0 }; host.panel(host.credits, lw.cost | 0, lw.win | 0); } catch (e) { console.warn('last win not restored', e); } } }
+    renderStats(); sync(); if (q.has('audit') && !RECALL) { q.delete('audit'); history.replaceState(null, '', '?' + q); auOpen(); } if (window.QotnCRT) QotnCRT.setup(cv, $('crtgl'), $('stage')); if (!/ — Retro Pokies/.test(document.title)) document.title = rec.name + ' — Retro Pokies'; $('boot').remove(); fitMarquee(); frame();
+  } catch (e) { console.error(e); msg('Could not start the game:<br><code>' + String(e.stack || e).replace(/</g, '&lt;') + '</code><br><br><a style="color:#ffe27a" href="games.html">Back to the game loader</a>'); }
+})();
+</script>
+<style>
+  /* window menu: a grouped panel behind the Menu button in the top bar (Game / Sound / Display / Machine); every row calls the page's own control */
+  #wmenu { position:fixed; z-index:40; top:40px; right:10px; width:min(270px, calc(100vw - 20px)); max-height:calc(100vh - 50px); max-height:calc(100dvh - 50px); overflow-y:auto; box-sizing:border-box;
+    background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line2); border-radius:var(--radius); box-shadow:0 10px 30px #000c; padding:4px 6px 6px; }
+  #wmenu[hidden] { display:none; }
+  #wmenu h4 { margin:8px 4px 2px; padding-top:6px; border-top:1px solid var(--line); font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+  #wmenu h4:first-child { margin-top:2px; border-top:0; padding-top:0; }
+  #wmenu .mi { display:flex; align-items:center; justify-content:space-between; gap:8px; box-sizing:border-box; width:100%; min-height:34px; margin:1px 0; padding:5px 8px; text-align:left; font-size:13px; color:var(--text); text-decoration:none; background:transparent; border:1px solid transparent; border-radius:5px; }
+  #wmenu .mi:hover, #wmenu button.mi:hover:not(:disabled) { background:#33220f; border-color:#7a5326; }
+  #wmenu .mi > span { color:var(--muted); font-size:12px; white-space:nowrap; }
+  #wmenu .mi select { max-width:60%; padding:3px 6px; font-size:12px; background:var(--bg); }
+  #wmenu .mi input[type=range] { width:50%; min-width:0; }
+  #wmenu .mi:focus-within, #wmenu .mi:focus-visible { outline:2px solid #7fc8ff; outline-offset:-2px; }
+  #wmenubtn[aria-expanded=true] { opacity:1; border-color:#7a5326; }
+  #topbar .btnlink, #topbar button { white-space:nowrap; }
+  #topbar > a.btnlink, #topbar #speed, #topbar #fsbtn { display:none; }   /* Games list, Speed and Full screen are in the menu; the buttons stay in the page as the menu's targets */
+  #wmenubtn { margin-left:auto; }
+  #wmenubtn.onstage { position:absolute; top:8px; right:10px; z-index:5; opacity:.75; padding:3px 10px; font-size:12px; }   /* banner and LCD off: on the game (fitMarquee) */
+  #wmenubtn.onstage:hover, #wmenubtn.onstage:focus-visible, #wmenubtn.onstage[aria-expanded=true] { opacity:1; }
+  #marquee.bare { display:none; }
+  #util, #devtools { display:none; }   /* every button and setting below the control panel is in the menu; the elements stay in the page as the menu's targets */
+  #stats { display:none; }
+  #stats.open { display:block; position:fixed; z-index:41; left:50%; top:50%; transform:translate(-50%,-50%); width:min(760px, calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; margin:0; box-sizing:border-box; box-shadow:0 12px 40px rgba(0,0,0,.7); }
+  #stats h3 .sbtns { display:flex; gap:6px; }
+  #wmenu .mi input[type=checkbox] { margin:0; width:16px; height:16px; accent-color:#ffd862; }
+  #wmenu .mi.dis { opacity:.45; }
+  #marquee .mqbody h1#gtitle { padding-inline:72px; max-width:100%; box-sizing:border-box; }   /* the title stays centred and clear of the Menu button at the top right (a long title wraps) */
+  @media (max-width:420px) { #topbar { gap:4px; } #topbar .btnlink, #topbar button { padding:3px 6px; } }   /* four buttons fit at 360 px */
+</style>
+<script>
+(() => {
+  const $ = id => document.getElementById(id), bar = $('topbar'); if (!bar) return;
+  const btn = document.createElement('button'); btn.id = 'wmenubtn'; btn.type = 'button'; btn.className = 'btnlink'; btn.textContent = '☰ Menu'; btn.style.order = '10'; btn.style.cursor = 'pointer';
+  btn.title = 'Menu: game, sound, display, machine'; btn.setAttribute('aria-haspopup', 'true'); btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'wmenu'); bar.appendChild(btn);
+  const m = document.createElement('div'); m.id = 'wmenu'; m.hidden = true; m.setAttribute('role', 'group'); m.setAttribute('aria-label', 'Menu'); document.body.appendChild(m);
+  const click = id => () => { const e = $(id); if (e && !e.disabled) e.click(); };
+  // row: {t: label, btn: element to click, val: () => text shown right, sel: select id to mirror, rng: range id to mirror, chk: checkbox id to mirror, run: function, keep: menu stays open}
+  // Statistics: a panel over the page (Close, Escape or a click outside closes it)
+  const stats = $('stats');
+  if (stats) { const h = stats.querySelector('h3'), r = $('sreset'), c = document.createElement('button'); c.type = 'button'; c.textContent = 'Close'; const w = document.createElement('span'); w.className = 'sbtns'; if (r) w.appendChild(r); w.appendChild(c); h.appendChild(w); c.onclick = () => showStats(false); }
+  function showStats(on) { if (!stats) return; stats.classList.toggle('open', on); if (on) { stats.tabIndex = -1; stats.focus({ preventScroll: true }); } else btn.focus(); }
+  addEventListener('keydown', e => { if (e.key === 'Escape' && stats && stats.classList.contains('open')) { e.preventDefault(); e.stopPropagation(); showStats(false); } }, true);
+  addEventListener('pointerdown', e => { if (stats && stats.classList.contains('open') && !stats.contains(e.target)) showStats(false); }, true);
+  const GROUPS = [
+    // Games list first; leaving asks first (the game is saved as on any page exit)
+    ['Game', [{ t: 'Games list', run: () => { const g = ($('gtitle').textContent || 'this game').trim(); if (confirm('Leave ' + g + ' and go to the games list?')) location.href = 'games.html'; } },
+      { t: 'Insert note', btn: 'add', val: () => ($('notev') || {}).textContent }, { t: 'Note value', sel: 'note' }, { t: 'Denomination', sel: 'denom' }, { t: 'Currency', sel: 'currency' },
+      { t: 'Statistics', run: () => showStats(true) },
+      { t: 'Game replay', btn: 'audbtn' }, { t: 'Paytable', btn: 'helpbtn' }, { t: 'Screenshot', btn: 'shotbtn' }]],
+    ['Sound', [{ t: 'Sound', btn: 'mute', val: () => $('mute').getAttribute('aria-pressed') === 'true' ? 'off' : 'on', keep: 1 }, { t: 'Volume', rng: 'vol' }]],
+    ['Display', [{ t: 'Controls side (phone on its side)', when: () => matchMedia('(orientation:landscape) and (max-height:520px)').matches, val: () => $('app').classList.contains('lefty') ? 'left' : 'right', keep: 1, run: () => { const on = !$('app').classList.contains('lefty'); $('app').classList.toggle('lefty', on); try { localStorage.setItem('emu-hand', JSON.stringify(on ? 'left' : 'right')); } catch (e) {} dispatchEvent(new Event('resize')); } },
+      { t: 'Full screen', btn: 'fsbtn', val: () => /Exit/.test($('fsbtn').textContent) ? 'on' : 'off' }, { t: 'Speed', rng: 'speed', val: () => $('speed').getAttribute('aria-valuetext') },
+      { t: 'Banner', chk: 'ui-banner' }, { t: 'Banner shows', sel: 'ui-bannerstyle' }, { t: 'LCD panel', chk: 'ui-lcd' }, { t: 'LCD colour', sel: 'ui-lcdtheme' },
+      { t: 'CRT effect', btn: 'crtbtn', val: () => $('crtbtn').textContent.replace(/^CRT:\s*/, ''), keep: 1 }, { t: 'CRT curve', sel: 'crtcurve' }, { t: 'CRT glow', sel: 'crtglow' }, { t: 'Scanlines', chk: 'crtscan' },
+      { t: 'Reset banner & LCD', btn: 'ui-reset', keep: 1 }]],
+    ['Machine', [{ t: 'RTP set', sel: 'rtp' }, { t: 'Reset stats & credits', btn: 'sreset' }]],
+    ['Developer', [{ t: 'Visuals', sel: 'vbad' }, { t: 'What is wrong', sel: 'vsub', val: () => $('vmsg').textContent }, { t: 'Test', sel: 'testsel' }, { t: 'Copy debug', btn: 'copydebug', val: () => /Copied/.test($('copydebug').textContent) ? 'copied' : '', keep: 1 }]]];
+  // a row shows when its element and the element's own controls are shown (CRT options only with CRT on, the test menu only for games that have one); #util and #devtools are hidden by the stylesheet only
+  const shown = e => { for (let n = e; n && n !== document.body; n = n.parentElement) if (n.hidden || n.style.display === 'none') return false; return true; };
+  const rows = [];
+  const build = () => {
+    m.replaceChildren(); rows.length = 0;
+    for (const [g, items] of GROUPS) {
+      const touch = $('cab').classList.contains('tc');   // a two-screen touch game has no banner or LCD panel: those settings would do nothing
+      const list = items.filter(r => { if (r.when && !r.when()) return false; const id = r.btn || r.sel || r.rng || r.chk, e = id ? $(id) : 1; return e && (e === 1 || shown(e)) && !(touch && /^ui-(banner|bannerstyle|lcd|lcdtheme|reset)$/.test(id)); });
+      if (!list.length) continue;
+      const h = document.createElement('h4'); h.textContent = g; m.appendChild(h);
+      for (const r of list) {
+        let el;
+        if (r.sel || r.rng || r.chk) {
+          const src = $(r.sel || r.rng || r.chk); el = document.createElement('label'); el.className = 'mi'; el.append(r.t);
+          const v = r.val && r.val(); if (v) { const s = document.createElement('span'); s.textContent = v; el.appendChild(s); }
+          const c = r.sel ? document.createElement('select') : document.createElement('input');
+          // a change keeps the menu open and redraws it, since one setting can show, hide or grey out others (Banner, LCD, CRT)
+          if (r.sel) { c.innerHTML = src.innerHTML; c.value = src.value; c.onchange = () => { src.value = c.value; src.dispatchEvent(new Event('change', { bubbles: true })); rebuild(r); }; }
+          else if (r.chk) { c.type = 'checkbox'; c.checked = src.checked; c.onchange = () => { src.checked = c.checked; src.dispatchEvent(new Event('change', { bubbles: true })); rebuild(r); }; }
+          else { c.type = 'range'; c.min = src.min; c.max = src.max; c.step = src.step; c.value = src.value; const ls = src.getAttribute('list'); if (ls) c.setAttribute('list', ls); c.oninput = () => { src.value = c.value; src.dispatchEvent(new Event('input', { bubbles: true })); const s = r.val && el.querySelector('span'); if (s) s.textContent = r.val(); }; }
+          if (src.disabled) { c.disabled = true; el.classList.add('dis'); }
+          c.setAttribute('aria-label', r.t); el.appendChild(c);
+        } else {
+          el = document.createElement(r.href ? 'a' : 'button'); el.className = 'mi'; if (r.href) el.href = r.href; else el.type = 'button';
+          el.append(r.t); const v = r.val && r.val(); if (v) { const s = document.createElement('span'); s.textContent = v; el.appendChild(s); }
+          const src = r.btn && $(r.btn); if (src && src.disabled) el.disabled = true;
+          el.onclick = e => { if (r.run) r.run(); else if (r.btn) src.click(); if (!r.keep) close(false); else rebuild(r); };   // Sound and Speed toggles keep the menu open
+        }
+        m.appendChild(el); rows.push(el);
+      }
+    }
+  };
+  // redraw and put the focus back on the same row (found by its label)
+  const rebuild = r => { build(); const el = rows.find(x => x.firstChild && x.firstChild.textContent === r.t); if (el) { const f = el.querySelector('select, input') || el; f.focus(); } };
+  const focusables = () => [...m.querySelectorAll('button:not(:disabled), a[href], select, input')];
+  const place = () => { const r = btn.getBoundingClientRect(); m.style.top = Math.round(r.bottom + 4) + 'px'; m.style.right = Math.max(6, Math.round(innerWidth - r.right)) + 'px'; };
+  function open() { build(); place(); m.hidden = false; btn.setAttribute('aria-expanded', 'true'); const f = focusables()[0]; if (f) f.focus(); }
+  function close(back = true) { if (m.hidden) return; m.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (back) btn.focus(); }
+  btn.onclick = () => m.hidden ? open() : close();
+  m.addEventListener('keydown', e => {
+    e.stopPropagation();   // game keys (Space spins, Enter inserts a note, arrows set bet and lines) must not fire from the menu
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key === 'Tab') { const f = focusables(); if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } return; }
+    const tag = (document.activeElement || {}).tagName, f = focusables(), i = f.indexOf(document.activeElement);
+    if (e.key === 'Home' && tag !== 'INPUT') { e.preventDefault(); f[0].focus(); } else if (e.key === 'End' && tag !== 'INPUT') { e.preventDefault(); f[f.length - 1].focus(); }
+    else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && tag !== 'SELECT') { e.preventDefault(); f[(i + (e.key === 'ArrowDown' ? 1 : f.length - 1)) % f.length].focus(); }
+  });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !m.hidden) { e.preventDefault(); close(); } });   // focus elsewhere
+  addEventListener('pointerdown', e => { if (!m.hidden && !m.contains(e.target) && e.target !== btn) close(false); }, true);
+  addEventListener('resize', () => { if (!m.hidden) place(); });
+})();
+</script>
+</body>
+</html>

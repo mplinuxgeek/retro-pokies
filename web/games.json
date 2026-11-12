@@ -1,0 +1,983 @@
+{
+ "profiles": [
+  {
+   "id": "50-lions",
+   "title": "50 Lions",
+   "zip": "50 Lions.zip"
+  },
+  {
+   "id": "queen-of-the-nile",
+   "title": "Queen of the Nile",
+   "zip": "Queen Of The Nile.zip"
+  },
+  {
+   "id": "queen-of-the-nile-special-edition",
+   "title": "Queen of the Nile Special Edition",
+   "zip": "Queen of the Nile Special Edition.zip"
+  },
+  {
+   "id": "where-is-the-gold",
+   "title": "Where's The Gold",
+   "zip": "Where Is The Gold.zip"
+  }
+ ],
+ "games": [
+  {
+   "id": "100-lions",
+   "title": "100 Lions",
+   "zip": "100 Lions.zip",
+   "size": 5410915,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "5-dragons",
+   "title": "5 Dragons",
+   "zip": "5 Dragons.zip",
+   "size": 12471403,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "50-lions",
+   "title": "50 Lions",
+   "zip": "50 Lions.zip",
+   "size": 5464244,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "african-dusk-mr-cashman",
+   "title": "African Dusk Mr Cashman",
+   "zip": "African Dusk Mr Cashman.zip",
+   "size": 13164746
+  },
+  {
+   "id": "alchemy",
+   "title": "Alchemy",
+   "zip": "Alchemy.zip",
+   "size": 11466431,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "amazon-queen",
+   "title": "Amazon Queen",
+   "zip": "Amazon Queen.zip",
+   "size": 8954725
+  },
+  {
+   "id": "arabian-nights",
+   "title": "Arabian Nights",
+   "zip": "Arabian Nights.zip",
+   "size": 10217992,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "big-ben-jackpot",
+   "title": "Big Ben Jackpot",
+   "zip": "Big Ben Jackpot.zip",
+   "size": 7775305,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "big-hearted",
+   "title": "Big Hearted",
+   "zip": "Big Hearted.zip",
+   "size": 4721557
+  },
+  {
+   "id": "big-red-jackpot",
+   "title": "Big Red Jackpot",
+   "zip": "Big Red Jackpot.zip",
+   "size": 12030082,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "big-red",
+   "title": "Big Red",
+   "zip": "Big Red.zip",
+   "size": 11956730,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "black-brumby",
+   "title": "Black Brumby",
+   "zip": "Black Brumby.zip",
+   "size": 12069511,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "brazil",
+   "title": "Brazil",
+   "zip": "Brazil.zip",
+   "size": 5197323,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "bucaneer",
+   "title": "Bucaneer",
+   "zip": "Bucaneer.zip",
+   "size": 6022788,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "buffalo",
+   "title": "Buffalo",
+   "zip": "Buffalo.zip",
+   "size": 7640138,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "bush-ranger",
+   "title": "Bush Ranger",
+   "zip": "Bush Ranger.zip",
+   "size": 7537519
+  },
+  {
+   "id": "calypso-king",
+   "title": "Calypso King",
+   "zip": "Calypso King.zip",
+   "size": 7804602,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "canary-riches-2",
+   "title": "Canary Riches 2",
+   "zip": "Canary Riches 2.zip",
+   "size": 5569740,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "cashman-tonight",
+   "title": "Cashman Tonight",
+   "zip": "Cashman Tonight.zip",
+   "size": 37306894,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "choy-sun-doa-cash-express",
+   "title": "Choy Sun Doa Cash Express",
+   "zip": "Choy Sun Doa Cash Express.zip",
+   "size": 14904713
+  },
+  {
+   "id": "choy-sun-doa",
+   "title": "Choy Sun Doa",
+   "zip": "Choy Sun Doa.zip",
+   "size": 14062714,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "choy-sun-returns",
+   "title": "Choy Sun Returns",
+   "zip": "Choy Sun Returns.zip",
+   "size": 13529492,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "corrida-de-toros",
+   "title": "Corrida De Toros",
+   "zip": "Corrida De Toros.zip",
+   "size": 13999060,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "crystal-springs",
+   "title": "Crystal Springs",
+   "zip": "Crystal Springs.zip",
+   "size": 6848577,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "delta-queen",
+   "title": "Delta Queen",
+   "zip": "Delta Queen.zip",
+   "size": 7731914,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "diamonds-forever",
+   "title": "Diamonds Forever",
+   "zip": "Diamonds Forever.zip",
+   "size": 6191672,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "dinosaur",
+   "title": "Dinosaur",
+   "zip": "Dinosaur.zip",
+   "size": 8989060,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "double-dolphin",
+   "title": "Double Dolphin",
+   "zip": "Double Dolphin.zip",
+   "size": 9060020
+  },
+  {
+   "id": "dragon-lord",
+   "title": "Dragon Lord",
+   "zip": "Dragon Lord.zip",
+   "size": 27508162,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "dragon-magic",
+   "title": "Dragon Magic",
+   "zip": "Dragon Magic.zip",
+   "size": 16021070
+  },
+  {
+   "id": "enchantress-6-reel",
+   "title": "Enchantress 6 Reel",
+   "zip": "Enchantress 6 Reel.zip",
+   "size": 5440246
+  },
+  {
+   "id": "eye-of-the-tiger",
+   "title": "Eye Of The Tiger",
+   "zip": "Eye Of The Tiger.zip",
+   "size": 11252840
+  },
+  {
+   "id": "fire-dancer",
+   "title": "Fire Dancer",
+   "zip": "Fire Dancer.zip",
+   "size": 8552819,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "follow-the-stars",
+   "title": "Follow The Stars",
+   "zip": "Follow The Stars.zip",
+   "size": 6757006
+  },
+  {
+   "id": "gambling-jack",
+   "title": "Gambling Jack",
+   "zip": "Gambling Jack.zip",
+   "size": 6097297,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "geisha",
+   "title": "Geisha",
+   "zip": "Geisha.zip",
+   "size": 7307843
+  },
+  {
+   "id": "go-ape",
+   "title": "Go Ape",
+   "zip": "Go Ape.zip",
+   "size": 6348226
+  },
+  {
+   "id": "go-for-green",
+   "title": "Go For Green",
+   "zip": "Go For Green.zip",
+   "size": 10076415
+  },
+  {
+   "id": "golden-archer-jackpot",
+   "title": "Golden Archer Jackpot",
+   "zip": "Golden Archer Jackpot.zip",
+   "size": 7649379,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "golden-inca",
+   "title": "Golden Inca",
+   "zip": "Golden Inca.zip",
+   "size": 8563059,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "golden-pyramids-maximillions",
+   "title": "Golden Pyramids Maximillions",
+   "zip": "Golden Pyramids Maximillions.zip",
+   "size": 9290318,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "grizzly",
+   "title": "Grizzly",
+   "zip": "Grizzly.zip",
+   "size": 17608077,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "heart-of-gold",
+   "title": "Heart Of Gold",
+   "zip": "Heart Of Gold.zip",
+   "size": 7366154,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "heart-of-vegas",
+   "title": "Heart Of Vegas",
+   "zip": "Heart Of Vegas.zip",
+   "size": 5976253,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "high-noon",
+   "title": "High Noon",
+   "zip": "High Noon.zip",
+   "size": 12764397
+  },
+  {
+   "id": "hollywood-dreams",
+   "title": "Hollywood Dreams",
+   "zip": "Hollywood Dreams.zip",
+   "size": 7058499
+  },
+  {
+   "id": "house-of-hearts",
+   "title": "House Of Hearts",
+   "zip": "House Of Hearts.zip",
+   "size": 4923066,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "inca-chief",
+   "title": "Inca Chief",
+   "zip": "Inca Chief.zip",
+   "size": 8213941,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-dreaming-cash-express",
+   "title": "Indian Dreaming Cash Express",
+   "zip": "Indian Dreaming Cash Express.zip",
+   "size": 11494353,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-dreaming-lady-luck",
+   "title": "Indian Dreaming Lady Luck",
+   "zip": "Indian Dreaming Lady Luck.zip",
+   "size": 16392254,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-dreaming-maximillions",
+   "title": "Indian Dreaming Maximillions",
+   "zip": "Indian Dreaming Maximillions.zip",
+   "size": 12426811,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-dreaming-second-chance",
+   "title": "Indian Dreaming Second Chance",
+   "zip": "Indian Dreaming Second Chance.zip",
+   "size": 10984037,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-dreaming-super-reel-power",
+   "title": "Indian Dreaming Super Reel Power",
+   "zip": "Indian Dreaming Super Reel Power.zip",
+   "size": 10434512,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "indian-gold-mr-cashman",
+   "title": "Indian Gold Mr Cashman",
+   "zip": "Indian Gold Mr Cashman.zip",
+   "size": 12973664
+  },
+  {
+   "id": "indian-princess",
+   "title": "Indian Princess",
+   "zip": "Indian Princess.zip",
+   "size": 9790676
+  },
+  {
+   "id": "jailbreak",
+   "title": "Jailbreak",
+   "zip": "Jailbreak.zip",
+   "size": 8179604,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "king-neptune",
+   "title": "King Neptune",
+   "zip": "King Neptune.zip",
+   "size": 7397192,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "king-of-the-nile",
+   "title": "King Of The Nile",
+   "zip": "King Of The Nile.zip",
+   "size": 12135018
+  },
+  {
+   "id": "koala-mint",
+   "title": "Koala Mint",
+   "zip": "Koala Mint.zip",
+   "size": 7433058
+  },
+  {
+   "id": "kohinoor",
+   "title": "Kohinoor",
+   "zip": "Kohinoor.zip",
+   "size": 10616138,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "lets-go-fishin",
+   "title": "Lets Go Fishin",
+   "zip": "Lets Go Fishin.zip",
+   "size": 14531782,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "lord-leopard",
+   "title": "Lord Leopard",
+   "zip": "Lord Leopard.zip",
+   "size": 11550003,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "louies-gold-mr-cashman",
+   "title": "Louies Gold Mr Cashman",
+   "zip": "Louies Gold Mr Cashman.zip",
+   "size": 13267232
+  },
+  {
+   "id": "luigis-ball",
+   "title": "Luigis Ball",
+   "zip": "Luigis Ball.zip",
+   "size": 16682678
+  },
+  {
+   "id": "miss-kitty",
+   "title": "Miss Kitty",
+   "zip": "Miss Kitty.zip",
+   "size": 7864123,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "money-tree",
+   "title": "Money Tree",
+   "zip": "Money Tree.zip",
+   "size": 7621855
+  },
+  {
+   "id": "mystic-eyes-mr-cashman",
+   "title": "Mystic Eyes Mr Cashman",
+   "zip": "Mystic Eyes Mr Cashman.zip",
+   "size": 13067697
+  },
+  {
+   "id": "mystic-mermaid",
+   "title": "Mystic Mermaid",
+   "zip": "Mystic Mermaid.zip",
+   "size": 11730343,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "nerds-gone-wild",
+   "title": "Nerds Gone Wild",
+   "zip": "Nerds Gone Wild.zip",
+   "size": 6410249,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "oriental-beauty",
+   "title": "Oriental Beauty",
+   "zip": "Oriental Beauty.zip",
+   "size": 6357854,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "outback-jack-jackpot",
+   "title": "Outback Jack Jackpot",
+   "zip": "Outback Jack Jackpot.zip",
+   "size": 20534181,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "owl-capone",
+   "title": "Owl Capone",
+   "zip": "Owl Capone.zip",
+   "size": 7145199
+  },
+  {
+   "id": "paris-lights",
+   "title": "Paris Lights",
+   "zip": "Paris Lights.zip",
+   "size": 11191771
+  },
+  {
+   "id": "peacock-magic",
+   "title": "Peacock Magic",
+   "zip": "Peacock Magic.zip",
+   "size": 11230742,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "pelican-pete",
+   "title": "Pelican Pete",
+   "zip": "Pelican Pete.zip",
+   "size": 10487497,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "pharohs-fortune",
+   "title": "Pharohs Fortune",
+   "zip": "Pharohs Fortune.zip",
+   "size": 11152473,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "phoenix-fantasy",
+   "title": "Phoenix Fantasy",
+   "zip": "Phoenix Fantasy.zip",
+   "size": 7128902,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "pirates",
+   "title": "Pirates",
+   "zip": "Pirates.zip",
+   "size": 7025158
+  },
+  {
+   "id": "players-choice-by-demand",
+   "title": "Players Choice By Demand",
+   "zip": "Players Choice By Demand.zip",
+   "size": 20691997,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "players-choice-favourites",
+   "title": "Players Choice Favourites",
+   "zip": "Players Choice Favourites.zip",
+   "size": 16994906,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "pompei",
+   "title": "Pompei",
+   "zip": "Pompei.zip",
+   "size": 8875628,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "pride-of-africa",
+   "title": "Pride Of Africa",
+   "zip": "Pride Of Africa.zip",
+   "size": 5530757,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "prophecy",
+   "title": "Prophecy",
+   "zip": "Prophecy.zip",
+   "size": 7383363,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "queen-of-sheeba",
+   "title": "Queen Of Sheeba",
+   "zip": "Queen Of Sheeba.zip",
+   "size": 10671395,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "queen-of-the-nile-clown-jackpot",
+   "title": "Queen Of The Nile Clown Jackpot",
+   "zip": "Queen Of The Nile Clown Jackpot.zip",
+   "size": 9906418
+  },
+  {
+   "id": "queen-of-the-nile",
+   "title": "Queen Of The Nile",
+   "zip": "Queen Of The Nile.zip",
+   "size": 13501812,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "queen-of-the-nile-special-edition",
+   "title": "Queen of the Nile Special Edition",
+   "zip": "Queen of the Nile Special Edition.zip",
+   "size": 6488082,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "rapid-riches",
+   "title": "Rapid Riches",
+   "zip": "Rapid Riches.zip",
+   "size": 8086686,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "red-baron",
+   "title": "Red Baron",
+   "zip": "Red Baron.zip",
+   "size": 11535484,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "roll-up-roll-up",
+   "title": "Roll Up Roll Up",
+   "zip": "Roll Up Roll Up.zip",
+   "size": 11954610,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "ruby-magic",
+   "title": "Ruby Magic",
+   "zip": "Ruby Magic.zip",
+   "size": 10215719,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "scatter-magic-2",
+   "title": "Scatter Magic 2",
+   "zip": "Scatter Magic 2.zip",
+   "size": 9324290
+  },
+  {
+   "id": "sharmans-magic",
+   "title": "Sharmans Magic",
+   "zip": "Sharmans Magic.zip",
+   "size": 6508999,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "show-me-the-money",
+   "title": "Show Me The Money",
+   "zip": "Show Me The Money.zip",
+   "size": 11964378
+  },
+  {
+   "id": "silver-and-gold",
+   "title": "Silver And Gold",
+   "zip": "Silver And Gold.zip",
+   "size": 9526713
+  },
+  {
+   "id": "spring-carnival",
+   "title": "Spring Carnival",
+   "zip": "Spring Carnival.zip",
+   "size": 6068624
+  },
+  {
+   "id": "star-drifter",
+   "title": "Star Drifter",
+   "zip": "Star Drifter.zip",
+   "size": 5723488,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "super-bucks-5",
+   "title": "Super Bucks 5",
+   "zip": "Super Bucks 5.zip",
+   "size": 11020745,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "sweet-hearts-2-lucky-devil",
+   "title": "Sweet Hearts 2 Lucky Devil",
+   "zip": "Sweet Hearts 2 Lucky Devil.zip",
+   "size": 12297212,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "tahiti-magic",
+   "title": "Tahiti Magic",
+   "zip": "Tahiti Magic.zip",
+   "size": 5268325,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "thai-princess",
+   "title": "Thai Princess",
+   "zip": "Thai Princess.zip",
+   "size": 10968734,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "the-golden-fleece",
+   "title": "The Golden Fleece",
+   "zip": "The Golden Fleece.zip",
+   "size": 8179472,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "thunderheart",
+   "title": "Thunderheart",
+   "zip": "Thunderheart.zip",
+   "size": 8487297,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "tigress",
+   "title": "Tigress",
+   "zip": "Tigress.zip",
+   "size": 6002410,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "topshot",
+   "title": "Topshot",
+   "zip": "Topshot.zip",
+   "size": 6526496,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "torch-of-the-gods",
+   "title": "Torch Of The Gods",
+   "zip": "Torch Of The Gods.zip",
+   "size": 8308377
+  },
+  {
+   "id": "touch-of-paradice",
+   "title": "Touch Of Paradice",
+   "zip": "Touch Of Paradice.zip",
+   "size": 9989717
+  },
+  {
+   "id": "turtle-treasure",
+   "title": "Turtle Treasure",
+   "zip": "Turtle Treasure.zip",
+   "size": 7692991,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "venetian-nights",
+   "title": "Venetian Nights",
+   "zip": "Venetian Nights.zip",
+   "size": 11127232,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "where-is-the-gold",
+   "title": "Where Is The Gold",
+   "zip": "Where Is The Gold.zip",
+   "size": 12892298,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "wicked-winnings-2",
+   "title": "Wicked Winnings 2",
+   "zip": "Wicked Winnings 2.zip",
+   "size": 6202997,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "wild-goose",
+   "title": "Wild Goose",
+   "zip": "Wild Goose.zip",
+   "size": 10236338,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "wild-panda-2",
+   "title": "Wild Panda 2",
+   "zip": "Wild Panda 2.zip",
+   "size": 9632807
+  },
+  {
+   "id": "wild-stalion-2",
+   "title": "Wild Stalion 2",
+   "zip": "Wild Stalion 2.zip",
+   "size": 9122794,
+   "found": {
+    "reels": 5
+   }
+  },
+  {
+   "id": "wild-tepee",
+   "title": "Wild Tepee",
+   "zip": "Wild Tepee.zip",
+   "size": 9309539
+  },
+  {
+   "id": "wild-waratah",
+   "title": "Wild Waratah",
+   "zip": "Wild Waratah.zip",
+   "size": 7948219
+  },
+  {
+   "id": "wild-ways",
+   "title": "Wild Ways",
+   "zip": "Wild Ways.zip",
+   "size": 8366678
+  },
+  {
+   "id": "wizard-ways-lady-luck",
+   "title": "Wizard Ways Lady Luck",
+   "zip": "Wizard Ways Lady Luck.zip",
+   "size": 16869041
+  },
+  {
+   "id": "zorro-jackpot",
+   "title": "Zorro Jackpot",
+   "zip": "Zorro Jackpot.zip",
+   "size": 13826872,
+   "found": {
+    "reels": 5
+   }
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+# Allow list: the build context is the repository root, send only what the Dockerfile copies.
+*
+!server.py
+!NOTICE.md
+!web
+!tools/shots.js
+!tools/engine.js
+!tools/data/syscalls.json
+!tools/data/exports.json
+**/__pycache__
